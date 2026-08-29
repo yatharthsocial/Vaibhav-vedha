@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# raw source footage/design files — large binaries not referenced by
+# the app (the processed, optimized versions used at runtime live in
+# public/video/ and public/logo.png, which are tracked)
+/src/assests/
