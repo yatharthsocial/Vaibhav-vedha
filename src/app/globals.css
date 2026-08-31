@@ -47,19 +47,3 @@ body {
     opacity: 1;
   }
 }
-
-/* Slow ambient drift for the themed blob backgrounds behind the
-   verticals showcase — each blob gets its own duration/delay so a
-   group never looks like it's moving in lockstep. */
-@keyframes blob-float {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-  33% {
-    transform: translate(4%, -6%) scale(1.08);
-  }
-  66% {
-    transform: translate(-5%, 5%) scale(0.94);
-  }
-}

@@ -17,6 +17,7 @@ const verticals: {
   icon: ComponentType<{ className?: string }>;
   color: string;
   lines: [string, string];
+  image: string;
 }[] = [
   {
     key: "green",
@@ -24,6 +25,7 @@ const verticals: {
     icon: Leaf,
     color: "#1f7a45",
     lines: ["Sustainability | Renewable Energy", "Landscaping | ESG | Green Infrastructure"],
+    image: "/verticals/green.jpg",
   },
   {
     key: "build",
@@ -31,6 +33,7 @@ const verticals: {
     icon: Building2,
     color: "#c9711f",
     lines: ["Real Estate | Construction", "Development | Interiors | Infrastructure"],
+    image: "/verticals/build.jpg",
   },
   {
     key: "learn",
@@ -38,6 +41,7 @@ const verticals: {
     icon: GraduationCap,
     color: "#2b6fb8",
     lines: ["Education | Skill Development", "Training | Leadership"],
+    image: "/verticals/learn.jpg",
   },
   {
     key: "advise",
@@ -45,6 +49,7 @@ const verticals: {
     icon: Briefcase,
     color: "#7a4bbd",
     lines: ["Business Advisory | Financial Advisory", "Property Advisory | Strategy"],
+    image: "/verticals/advise.jpg",
   },
   {
     key: "digital",
@@ -52,6 +57,7 @@ const verticals: {
     icon: Monitor,
     color: "#1a9aa0",
     lines: ["Technology | IT Solutions", "Digital Platforms | Automation"],
+    image: "/verticals/digital.jpg",
   },
 ];
 
@@ -67,14 +73,10 @@ const SCROLL_SPAN_MULTIPLIER = 3;
 // which plain window.innerHeight doesn't always do promptly.
 const getViewportHeight = () => window.visualViewport?.height ?? window.innerHeight;
 
-// Base layout for the three ambient blobs each vertical's background
-// uses. Each vertical rotates through these positions (offset by its
-// own index) so the compositions differ, not just the color.
-const BLOB_SLOTS = [
-  { top: "6%", left: "8%", size: 460, duration: 16 },
-  { top: "52%", left: "66%", size: 420, duration: 20 },
-  { top: "70%", left: "14%", size: 340, duration: 24 },
-];
+// How visible each vertical's background photo is — low enough that
+// it reads as texture behind the card, not a competing image, so the
+// dark card text on top stays comfortably legible.
+const IMAGE_OPACITY = 0.16;
 
 export default function VerticalsShowcase() {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -154,36 +156,25 @@ export default function VerticalsShowcase() {
     // a live-measured pixel height once mounted.
     <div ref={wrapperRef} className="relative h-[400svh] bg-white">
       <div ref={stickyRef} className="sticky top-0 flex h-[100svh] items-center overflow-hidden">
-        {/* Ambient, per-vertical background — a separate fixed layer
-            (never slides with the cards) so each vertical's color wash
-            crossfades smoothly in place as the active step changes. */}
+        {/* Per-vertical background photo — a separate fixed layer
+            (never slides with the cards) at low opacity, so each
+            vertical's real footage crossfades smoothly in place as the
+            active step changes, as texture behind the card rather than
+            competing with its text. */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           {verticals.map((v, i) => (
             <div
               key={v.key}
               className="absolute inset-0 transition-opacity duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
-              style={{ opacity: i === activeIndex ? 1 : 0 }}
+              style={{ opacity: i === activeIndex ? IMAGE_OPACITY : 0 }}
             >
-              {BLOB_SLOTS.map((slot, j) => {
-                const rotated = BLOB_SLOTS[(j + i) % BLOB_SLOTS.length];
-                return (
-                  <div
-                    key={j}
-                    className="absolute rounded-full"
-                    style={{
-                      top: rotated.top,
-                      left: rotated.left,
-                      width: slot.size,
-                      height: slot.size,
-                      backgroundColor: v.color,
-                      opacity: 0.22,
-                      filter: "blur(90px)",
-                      animation: `blob-float ${slot.duration}s ease-in-out infinite`,
-                      animationDelay: `${j * 1.4}s`,
-                    }}
-                  />
-                );
-              })}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={v.image}
+                alt=""
+                aria-hidden="true"
+                className="h-full w-full object-cover"
+              />
             </div>
           ))}
         </div>
