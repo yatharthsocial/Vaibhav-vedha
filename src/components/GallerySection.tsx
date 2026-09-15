@@ -10,30 +10,50 @@ const images: { src: string; caption: string }[] = [
   { src: "/verticals/digital.jpg", caption: "Digital Solutions" },
 ];
 
-// How long the watermark takes to type itself out once the section
-// scrolls into view, and how much of a beat to leave before the
-// images start their own reveal right after.
-const TYPE_DURATION_MS = 1100;
-const IMAGES_START_DELAY_MS = 150;
+// How long the watermark takes to type itself out once the panel
+// scrolls into view — a fixed, time-based reveal (not tied to scroll
+// depth), so it starts the moment the section is looked at rather than
+// requiring the user to already be scrolling past it. The image sweep
+// below is the part that's actually scroll-linked.
+const TYPE_DURATION_MS = 900;
+
+// How many viewport-heights of extra scroll drive the image sweep.
+const SCROLL_SPAN_MULTIPLIER = 1.4;
+
+// The pinned panel's own height (min(92lvh,780px), set directly on the
+// two elements below since Tailwind's build-time class scanner can't
+// see a value assembled from a JS template string) — heading, watermark
+// and image track all live inside it, so the whole composition (not
+// just the images) pins together once it reaches the top of the
+// viewport, exactly where it first sits fully in view, rather than the
+// heading scrolling away on its own beforehand.
+
+// Same technique as the Hero→About pinned transition: lvh (not dvh) so
+// the pinned panel's own size never changes mid-scroll as a mobile
+// browser's address bar animates — see HeroAboutTransition.tsx for the
+// full reasoning. This value is only ever read for the scroll-progress
+// math below, never written back to any element's size.
+const getViewportHeight = () => window.visualViewport?.height ?? window.innerHeight;
 
 export default function GallerySection() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-  const [imagesVisible, setImagesVisible] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [typed, setTyped] = useState(false);
 
-  // A plain scroll-into-view trigger, not a scroll-scrubbed animation —
-  // this section behaves like every other one on the page (natural
-  // scroll, no pinning, no extra scroll distance). Once it's in view
-  // the whole sequence just plays once, on its own timer: the
-  // watermark types out over TYPE_DURATION_MS, then the images fade
-  // up right after.
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  // Types the watermark out once, the moment the panel itself is
+  // roughly a quarter into view — independent of how far the user then
+  // scrolls, so there's something happening immediately rather than a
+  // blank pinned box waiting for scroll progress to catch up.
   useEffect(() => {
-    const el = sectionRef.current;
+    const el = panelRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setVisible(true);
+          setTyped(true);
           observer.disconnect();
         }
       },
@@ -43,89 +63,184 @@ export default function GallerySection() {
     return () => observer.disconnect();
   }, []);
 
+  // Drives the horizontal sweep: scroll progress (0 to 1) through the
+  // pinned wrapper maps linearly onto the track's full travel distance
+  // — fully off-screen right to fully off-screen left (viewport width
+  // plus the track's own width), so every image actually exits past
+  // the left edge rather than just settling into view — only once
+  // that's done does the wrapper's scroll range end and the page
+  // release into normal scroll below it. The heading and watermark
+  // above the track stay completely still throughout — only the track
+  // itself moves.
   useEffect(() => {
-    if (!visible) return;
-    const timer = setTimeout(
-      () => setImagesVisible(true),
-      TYPE_DURATION_MS + IMAGES_START_DELAY_MS,
-    );
-    return () => clearTimeout(timer);
-  }, [visible]);
+    let ticking = false;
+    let viewportHeight = getViewportHeight();
+    let viewportWidth = 0;
+    let trackWidth = 0;
+
+    const measure = () => {
+      const track = trackRef.current;
+      const viewport = viewportRef.current;
+      if (!track || !viewport) return;
+      viewportWidth = viewport.clientWidth;
+      trackWidth = track.scrollWidth;
+    };
+
+    const updateProgress = () => {
+      ticking = false;
+      const wrapper = wrapperRef.current;
+      const track = trackRef.current;
+      if (!wrapper || !track) return;
+
+      const rect = wrapper.getBoundingClientRect();
+      const scrolled = -rect.top;
+      const transitionSpan = viewportHeight * SCROLL_SPAN_MULTIPLIER;
+      const progress =
+        transitionSpan > 0 ? Math.min(1, Math.max(0, scrolled / transitionSpan)) : 0;
+
+      const startX = viewportWidth;
+      const endX = -trackWidth;
+      const x = startX + progress * (endX - startX);
+      track.style.transform = `translate3d(${x}px, 0, 0)`;
+    };
+
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(updateProgress);
+      }
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      measure();
+      updateProgress();
+    });
+    if (trackRef.current) resizeObserver.observe(trackRef.current);
+    if (viewportRef.current) resizeObserver.observe(viewportRef.current);
+
+    // Debounced, and only ever updates the local viewportHeight number
+    // used for the progress math — never writes any element's size, so
+    // it can't fight an in-progress touch scroll the way a live DOM
+    // height write would.
+    let resizeSettleTimer: ReturnType<typeof setTimeout> | null = null;
+    const onResize = () => {
+      if (resizeSettleTimer) clearTimeout(resizeSettleTimer);
+      resizeSettleTimer = setTimeout(() => {
+        viewportHeight = getViewportHeight();
+        onScroll();
+      }, 150);
+    };
+
+    measure();
+    updateProgress();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
+    window.visualViewport?.addEventListener("resize", onResize);
+    return () => {
+      if (resizeSettleTimer) clearTimeout(resizeSettleTimer);
+      resizeObserver.disconnect();
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+      window.visualViewport?.removeEventListener("resize", onResize);
+    };
+  }, []);
 
   return (
-    <section
-      ref={sectionRef}
-      className="relative w-full overflow-hidden bg-white px-6 py-24 [@media(max-height:500px)]:!py-10 lg:px-16 lg:py-28"
-    >
-      {/* A giant, faint wordmark sitting behind everything else — quiet
-          background texture. Typed out via a clip-path transition
-          triggered once by scrolling into view (not scroll-scrubbed),
-          with a thin cursor riding the reveal edge. Sized in vw (with
-          a floor and cap) so it always sits comfortably inside the
-          viewport at any screen size, mobile included. */}
-      <div className="pointer-events-none absolute left-1/2 top-1/2 block -translate-x-1/2 -translate-y-1/2 text-[clamp(2.75rem,15vw,220px)] [@media(max-height:500px)]:!text-[clamp(2rem,9vw,110px)]">
-        <span
-          aria-hidden="true"
-          className="block select-none whitespace-nowrap font-sans font-extrabold uppercase leading-none tracking-tight text-black/[0.05] transition-[clip-path]"
-          style={{
-            clipPath: visible ? "inset(0 0% 0 0)" : "inset(0 100% 0 0)",
-            transitionDuration: `${TYPE_DURATION_MS}ms`,
-            transitionTimingFunction: "cubic-bezier(0.65, 0, 0.35, 1)",
-          }}
+    <section className="relative w-full bg-white">
+      {/* Pinned panel: heading, watermark and image track all live
+          together in this one box, so the whole composition pins in
+          place — right where it first sits fully in view — rather than
+          the heading scrolling away on its own before the images take
+          over. From there, only the track sweeps right to left as the
+          user scrolls; everything else stays put. Only once every
+          image has actually exited past the left edge does the
+          wrapper's scroll range end and the page release into normal
+          scroll below it. */}
+      <div ref={wrapperRef} className="relative h-[calc(min(92lvh,780px)+130lvh)]">
+        <div
+          ref={panelRef}
+          className="sticky top-0 flex h-[min(92lvh,780px)] w-full flex-col items-center overflow-hidden"
         >
-          Gallery
-        </span>
-        <span
-          aria-hidden="true"
-          className="absolute top-0 h-full w-[3px] bg-brand-gold/50 transition-all"
-          style={{
-            left: visible ? "100%" : "0%",
-            opacity: imagesVisible ? 0 : 1,
-            transitionDuration: `${TYPE_DURATION_MS}ms, 200ms`,
-            transitionProperty: "left, opacity",
-            transitionTimingFunction: "cubic-bezier(0.65, 0, 0.35, 1)",
-          }}
-        />
-      </div>
+          <div className="w-full max-w-6xl shrink-0 px-6 pt-16 text-center sm:pt-20 lg:px-16">
+            <div className="flex items-center justify-center gap-3">
+              <span className="h-px w-10 bg-brand-gold" />
+              <span className="text-[14px] font-bold tracking-[0.25em] text-brand-gold">
+                OUR WORK
+              </span>
+              <span className="h-px w-10 bg-brand-gold" />
+            </div>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col items-center text-center">
-        <div className="flex items-center gap-3">
-          <span className="h-px w-10 bg-brand-gold" />
-          <span className="text-[14px] font-bold tracking-[0.25em] text-brand-gold">
-            OUR WORK
-          </span>
-          <span className="h-px w-10 bg-brand-gold" />
-        </div>
-
-        <h2 className="mt-4 max-w-xl font-sans text-[36px] font-extrabold leading-[1.08] tracking-tight text-brand-green-dark [@media(max-height:500px)]:!mt-2 [@media(max-height:500px)]:!max-w-md [@media(max-height:500px)]:!text-[22px] [@media(max-height:500px)]:!leading-[1.2] sm:text-[52px]">
-          A glimpse of what we build.
-        </h2>
-      </div>
-
-      <div className="relative z-10 mx-auto mt-14 grid w-full max-w-6xl grid-cols-2 gap-4 [@media(max-height:500px)]:!mt-6 [@media(max-height:500px)]:!gap-3 sm:mt-16 sm:grid-cols-5 sm:gap-5">
-        {images.map((img, i) => (
-          <div
-            key={img.src}
-            className="relative overflow-hidden bg-black/5 shadow-lg transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
-            style={{
-              aspectRatio: "3 / 4",
-              opacity: imagesVisible ? 1 : 0,
-              // translate3d rather than translateX — it forces the browser
-              // to promote this box to its own GPU compositor layer up
-              // front, so the slide is composited smoothly throughout
-              // instead of only getting promoted (with a possible frame
-              // hitch) once the transition starts. That promotion is what
-              // makes this read as consistently smooth on real mobile
-              // hardware, not just in a desktop-class browser.
-              transform: imagesVisible ? "translate3d(0, 0, 0)" : "translate3d(48px, 0, 0)",
-              willChange: "opacity, transform",
-              transitionDelay: imagesVisible ? `${i * 100}ms` : "0ms",
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={img.src} alt={img.caption} className="h-full w-full object-cover" />
+            <h2 className="mx-auto mt-4 max-w-xl font-sans text-[36px] font-extrabold leading-[1.08] tracking-tight text-brand-green-dark sm:text-[52px]">
+              A glimpse of what we build.
+            </h2>
           </div>
-        ))}
+
+          <div className="relative flex w-full flex-1 items-center overflow-hidden">
+            {/* A giant, faint wordmark sitting behind the image track —
+                typed out via clip-path the moment the panel scrolls
+                into view, with a thin cursor riding the reveal edge,
+                before the images sweep in over it. */}
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <span
+                className="select-none whitespace-nowrap font-sans font-extrabold uppercase leading-none tracking-tight text-black/[0.05] transition-[clip-path]"
+                style={{
+                  fontSize: "clamp(2.25rem, 12vw, 180px)",
+                  clipPath: typed ? "inset(0 0% 0 0)" : "inset(0 100% 0 0)",
+                  transitionDuration: `${TYPE_DURATION_MS}ms`,
+                  transitionTimingFunction: "cubic-bezier(0.65, 0, 0.35, 1)",
+                }}
+              >
+                Gallery
+              </span>
+              <span
+                className="absolute top-1/2 h-[0.7em] w-[3px] -translate-y-1/2 bg-brand-gold/50 transition-all"
+                style={{
+                  fontSize: "clamp(2.25rem, 12vw, 180px)",
+                  left: typed ? "100%" : "0%",
+                  opacity: typed ? 0 : 1,
+                  transitionDuration: `${TYPE_DURATION_MS}ms, 200ms`,
+                  transitionProperty: "left, opacity",
+                  transitionTimingFunction: "cubic-bezier(0.65, 0, 0.35, 1)",
+                }}
+              />
+            </div>
+
+            <div ref={viewportRef} className="relative z-10 h-full w-full overflow-hidden">
+              <div
+                ref={trackRef}
+                className="flex h-full w-max items-center gap-5 px-6 will-change-transform sm:gap-6 lg:px-16"
+                style={{ transform: "translate3d(100%, 0, 0)" }}
+              >
+                {images.map((img) => (
+                  <div
+                    key={img.src}
+                    className="relative flex-none overflow-hidden rounded-xl bg-black/5 shadow-xl"
+                    style={{
+                      // Height-first, sized to exactly 100% of the
+                      // space actually left over after the heading
+                      // above it — not a vh-based guess, which on a
+                      // short viewport (mobile landscape, where the
+                      // heading eats a bigger share of a shorter
+                      // panel) could estimate more room than truly
+                      // remains and get the image clipped at the
+                      // bottom. Width simply follows from that via the
+                      // 16:9 landscape ratio.
+                      height: "100%",
+                      aspectRatio: "16 / 9",
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={img.src}
+                      alt={img.caption}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
