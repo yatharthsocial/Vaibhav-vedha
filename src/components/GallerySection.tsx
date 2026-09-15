@@ -214,7 +214,12 @@ export default function GallerySection() {
                 {images.map((img) => (
                   <div
                     key={img.src}
-                    className="relative flex-none overflow-hidden rounded-xl bg-black/5 shadow-xl"
+                    // Portrait (3:4) on mobile, landscape (16:9) from
+                    // sm up — a wide crop of these particular photos
+                    // reads too thin/sliver-like on a narrow phone
+                    // screen, where a taller portrait frame shows more
+                    // of the actual composition.
+                    className="relative aspect-[3/4] flex-none overflow-hidden rounded-xl bg-black/5 shadow-xl sm:aspect-[16/9]"
                     style={{
                       // Height-first, sized to exactly 100% of the
                       // space actually left over after the heading
@@ -223,10 +228,9 @@ export default function GallerySection() {
                       // heading eats a bigger share of a shorter
                       // panel) could estimate more room than truly
                       // remains and get the image clipped at the
-                      // bottom. Width simply follows from that via the
-                      // 16:9 landscape ratio.
+                      // bottom. Width simply follows from that via
+                      // whichever aspect ratio applies above.
                       height: "100%",
-                      aspectRatio: "16 / 9",
                     }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
