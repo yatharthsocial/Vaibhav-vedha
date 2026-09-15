@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Anton, Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,12 +12,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const anton = Anton({
-  variable: "--font-anton",
-  subsets: ["latin"],
-  weight: "400",
-});
-
 export const metadata: Metadata = {
   title: "Vaibhav Veda Green Ventures",
   description:
@@ -28,7 +22,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${anton.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       // Browser extensions (password managers, ad/tracker blockers,
       // etc.) commonly inject their own attributes onto <html> before
       // React hydrates — e.g. a "data-qb-installed" attribute showed

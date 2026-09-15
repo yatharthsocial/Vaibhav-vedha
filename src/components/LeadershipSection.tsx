@@ -12,16 +12,22 @@ const leaders: {
   photo: string;
 }[] = [
   {
-    name: "Dr. M. Naveen Kumar",
-    title: "CEO & Founder Director",
-    tags: "Visionary Leader | Entrepreneur | Strategist | Philanthropist",
+    name: "Dr. Shilpa Naveen Kumar",
+    title: "Director, Academics Operations & Finance",
+    tags: "Academic Design | Finance | Partnerships | Mentor",
+    photo: "/leadership/shilpa-naveen-kumar.jpg",
+  },
+  {
+    name: "Dr. Naveen Kumar",
+    title: "Managing Director",
+    tags: "Strategist | Mentor | Visionary | Guide",
     photo: "/leadership/naveen-kumar.jpg",
   },
   {
-    name: "Dr. Shilpa H. Naveen",
-    title: "Executive Director",
-    tags: "Academician | Social Entrepreneur | Author | Mentor",
-    photo: "/leadership/shilpa-naveen.jpg",
+    name: "Rajesh Shetty",
+    title: "Director, Business Development",
+    tags: "Strategy | Business Development | Operations | Growth",
+    photo: "/leadership/rajesh-shetty.jpg",
   },
 ];
 
@@ -48,17 +54,16 @@ export default function LeadershipSection() {
   return (
     <section
       ref={sectionRef}
-      className="relative w-full bg-[#f5f4f1] px-6 py-24 lg:px-16 lg:py-28"
+      className="relative w-full bg-[#f5f4f1] px-6 py-24 [@media(max-height:500px)]:!py-10 lg:px-16 lg:py-28"
     >
       <div className="mx-auto w-full max-w-5xl">
-        <div className="mb-12 flex items-center gap-3">
-          <span className="text-[11px] font-bold tracking-[0.25em] text-brand-gold">
+        <div className="mb-12 text-center [@media(max-height:500px)]:!mb-6">
+          <span className="text-[14px] font-bold tracking-[0.25em] text-brand-gold">
             OUR LEADERSHIP
           </span>
-          <span className="h-px w-10 bg-brand-gold/60" />
         </div>
 
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:gap-14">
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 [@media(max-height:500px)]:!grid-cols-3 [@media(max-height:500px)]:!gap-4 lg:grid-cols-3 lg:gap-10">
           {leaders.map((l, i) => (
             <div
               key={l.name}
@@ -69,23 +74,25 @@ export default function LeadershipSection() {
                 transitionDelay: visible ? `${i * 150}ms` : "0ms",
               }}
             >
-              <div className="relative aspect-[4/5] w-full overflow-hidden rounded-xl border border-black/10 bg-black/5">
+              <div className="relative aspect-[4/5] w-full overflow-hidden rounded-xl border border-black/10 bg-black/5 [@media(max-height:500px)]:!aspect-[3/4]">
                 {/* Placeholder — same treatment as the hero used before
                     the real footage was dropped in. Swap for a real
                     <Image src={l.photo}> once the headshot exists. */}
                 <div className="flex h-full w-full flex-col items-center justify-center gap-2 border-2 border-dashed border-black/15 text-black/35">
-                  <User className="h-9 w-9" strokeWidth={1.5} />
-                  <span className="px-4 text-center text-[11px] font-medium uppercase tracking-wide">
-                    {l.name} — photo
+                  <User className="h-9 w-9 [@media(max-height:500px)]:!h-6 [@media(max-height:500px)]:!w-6" strokeWidth={1.5} />
+                  <span className="px-4 text-center text-[11px] font-medium uppercase tracking-wide [@media(max-height:500px)]:!text-[9px]">
+                    {l.name}, photo
                   </span>
                 </div>
               </div>
 
-              <h3 className="mt-5 text-[22px] font-extrabold text-brand-green-dark">
+              <span className="mt-5 block text-center text-[10px] font-bold uppercase tracking-[0.2em] text-brand-gold [@media(max-height:500px)]:!mt-2 sm:text-left">
+                {l.title}
+              </span>
+              <h3 className="mt-1.5 text-center text-[20px] font-extrabold text-brand-green-dark [@media(max-height:500px)]:!text-[14px] sm:text-left">
                 {l.name}
               </h3>
-              <p className="text-[13px] font-medium text-black/50">{l.title}</p>
-              <p className="mt-3 text-[13px] leading-relaxed text-black/60">
+              <p className="mt-2 text-center text-[13px] leading-relaxed text-black/60 [@media(max-height:500px)]:!mt-1 [@media(max-height:500px)]:!text-[10.5px] [@media(max-height:500px)]:!leading-snug sm:text-left">
                 {l.tags}
               </p>
             </div>

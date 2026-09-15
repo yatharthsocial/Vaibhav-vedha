@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 // image takes. Both frames are visually identical (the still is
 // extracted from the video's own last frame), so this just guarantees
 // there's never a hard cut or flash while the video element unmounts.
-const FREEZE_TRANSITION_MS = 500;
+const FREEZE_TRANSITION_MS = 700;
 
 // Below this width, the <source> below serves the portrait clip shot
 // for mobile instead of the widescreen desktop one — a 16:9 video
@@ -18,6 +18,15 @@ const LAST_FRAME = {
   mobile: "/video/hero-mobile-last-frame.jpg",
   desktop: "/video/hero-last-frame.jpg",
 };
+
+// A one-time, static speed bump — not a live/eased rate change, and
+// not re-applied on every frame. Some browsers reset playbackRate
+// when the source resolves, so it's set both immediately and again on
+// loadedmetadata below, but always to this same fixed value. This is
+// deliberately distinct from the dynamic playbackRate/seek/restart
+// tricks noted below, which are what actually caused the earlier
+// glitches.
+const PLAYBACK_RATE = 1.2;
 
 export default function HeroVideo({
   className = "",
@@ -48,25 +57,33 @@ export default function HeroVideo({
     if (!video) return;
 
     // The only script involvement in playback, period: listen for the
-    // browser's own "ended" event and note it. Nothing here ever sets
-    // playbackRate, seeks currentTime, or calls play()/pause() — every
-    // glitch/replay reported so far traced back to JS touching the
-    // browser's playback state in some way (looping, restarting,
-    // easing the rate), so this version deliberately doesn't.
+    // browser's own "ended" event and note it. Nothing here seeks
+    // currentTime or calls play()/pause(), and playbackRate is only
+    // ever set to one fixed value, never eased or repeatedly touched —
+    // a dynamic/eased rate was tried here and made the tail end of the
+    // clip visibly glitchy (browsers don't interpolate frequent
+    // playbackRate writes smoothly), so the "smooth stop" instead
+    // comes entirely from the crossfade below: the video plays at a
+    // constant rate right up to its last frame, then fades into the
+    // identical still image over FREEZE_TRANSITION_MS.
     const handleEnded = () => {
       setEnded(true);
       onEndedRef.current?.();
     };
     video.addEventListener("ended", handleEnded);
+    video.playbackRate = PLAYBACK_RATE;
 
     // The <video>'s two <source> tags below are resolved natively by
     // the browser the moment it parses them — instantly, with zero
     // dependency on JS/hydration. This just reads back which one it
-    // picked (via currentSrc) so the freeze-frame still matches.
+    // picked (via currentSrc) so the freeze-frame still matches, and
+    // re-applies the fixed playback rate since some browsers reset it
+    // once the source actually resolves.
     const updateLastFrame = () => {
       setLastFrame(
         video.currentSrc.includes("hero-mobile") ? LAST_FRAME.mobile : LAST_FRAME.desktop,
       );
+      video.playbackRate = PLAYBACK_RATE;
     };
     updateLastFrame();
     video.addEventListener("loadedmetadata", updateLastFrame);
