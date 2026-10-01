@@ -1,55 +1,48 @@
 "use client";
 
-import { ArrowRight, Briefcase, Building2, GraduationCap, Leaf, Monitor } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { ComponentType } from "react";
 
 const verticals: {
-  key: string;
+  slug: string;
   title: string;
-  icon: ComponentType<{ className?: string }>;
   color: string;
   tags: string;
   image: string;
 }[] = [
   {
-    key: "green",
-    title: "Green",
-    icon: Leaf,
-    color: "#39ff14",
-    tags: "Sustainability | Renewable Energy | Green Infrastructure",
-    image: "/verticals/green.jpg",
-  },
-  {
-    key: "build",
-    title: "Build",
-    icon: Building2,
+    slug: "real-estate",
+    title: "Real Estate",
     color: "#e0be4a",
-    tags: "Real Estate | Construction | Interiors",
+    tags: "Residential & Commercial | Farm Plots | Sustainable Design",
     image: "/verticals/build.jpg",
   },
   {
-    key: "learn",
-    title: "Learn",
-    icon: GraduationCap,
-    color: "#6fb8ff",
-    tags: "Education | Skill Development | Training",
-    image: "/verticals/learn.jpg",
+    slug: "infrastructure",
+    title: "Infrastructure",
+    color: "#39ff14",
+    tags: "Transportation | Utilities | Urban Development",
+    image: "/verticals/green.jpg",
   },
   {
-    key: "advise",
-    title: "Advise",
-    icon: Briefcase,
+    slug: "legal",
+    title: "Legal Consulting",
     color: "#c19bff",
-    tags: "Business Advisory | Financial Advisory | Strategy",
+    tags: "Regulatory Compliance | Risk Advisory | Corporate Law",
     image: "/verticals/advise.jpg",
   },
   {
-    key: "digital",
-    title: "Digital",
-    icon: Monitor,
+    slug: "interiors",
+    title: "Interiors & Design",
+    color: "#6fb8ff",
+    tags: "Residential & Commercial | Space Planning | Design",
+    image: "/verticals/learn.jpg",
+  },
+  {
+    slug: "media",
+    title: "Media & Branding",
     color: "#4ee2e8",
-    tags: "Technology | IT Solutions | Automation",
+    tags: "Branding | Advertising | Media Strategy",
     image: "/verticals/digital.jpg",
   },
 ];
@@ -123,26 +116,45 @@ export default function BusinessSection() {
     };
   }, []);
 
+  // Lets the index list below double as real navigation, not just a
+  // readout — jumps to the middle of whichever step's slice of the
+  // scroll range, computed the same way updateProgress reads it back.
+  const goToStep = (index: number) => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const viewportHeight = getViewportHeight();
+    const total = viewportHeight * SCROLL_SPAN_MULTIPLIER;
+    const wrapperTop = wrapper.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo({ top: wrapperTop + ((index + 0.5) / STEPS) * total, behavior: "smooth" });
+  };
+
   return (
-    <div ref={wrapperRef} className="relative h-[400svh] bg-black">
+    <div id="verticals" ref={wrapperRef} className="relative h-[400svh] bg-black">
       <div ref={stickyRef} className="sticky top-0 h-[100svh] w-full overflow-hidden">
         {/* Each vertical's own photo as a full-bleed background,
             crossfading to the next as the active step changes. */}
         <div className="absolute inset-0">
           {verticals.map((v, i) => (
             <div
-              key={v.key}
+              key={v.slug}
               className="absolute inset-0 transition-opacity duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
               style={{ opacity: i === activeIndex ? 1 : 0 }}
               aria-hidden={i !== activeIndex}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={v.image} alt="" className="h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-black/40" />
+              <div className="absolute inset-0 bg-black/60" />
             </div>
           ))}
         </div>
 
+        {/* Centered, like the content itself actually deserves the
+            middle of the frame — but now paired with a real index
+            row underneath, so there's an actual sense of "step 2 of
+            5" instead of verticals just silently replacing each
+            other with no record of where you are or where else you
+            could go. Each list entry is real navigation (goToStep),
+            not just a readout. */}
         <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center text-white">
           <div className="mb-8 flex items-center gap-3">
             <span className="h-px w-10 bg-brand-gold-light/60" />
@@ -152,41 +164,63 @@ export default function BusinessSection() {
             <span className="h-px w-10 bg-brand-gold-light/60" />
           </div>
 
-          <div className="relative h-[280px] w-full max-w-lg sm:h-[320px]">
+          <div className="relative h-[190px] w-full max-w-lg sm:h-[220px]">
             {verticals.map((v, i) => {
-              const Icon = v.icon;
               const isActive = i === activeIndex;
               return (
                 <div
-                  key={v.key}
-                  className="absolute inset-0 flex flex-col items-center justify-center gap-4 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                  key={v.slug}
+                  className="absolute inset-0 flex flex-col items-center justify-center gap-3 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
                   style={{
                     opacity: isActive ? 1 : 0,
-                    transform: `translateY(${isActive ? 0 : 24}px)`,
+                    transform: `translateY(${isActive ? 0 : 20}px)`,
                   }}
                   aria-hidden={!isActive}
                 >
-                  <span
-                    className="flex h-16 w-16 items-center justify-center rounded-full border-2 bg-black/30 backdrop-blur-sm"
-                    style={{ borderColor: v.color, color: v.color }}
-                  >
-                    <Icon className="h-7 w-7" />
-                  </span>
-                  <h3 className="font-sans text-[40px] font-extrabold uppercase leading-none tracking-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] sm:text-[52px]">
+                  <h3 className="font-sans text-[36px] font-extrabold uppercase leading-[1.05] tracking-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] sm:text-[52px]">
                     {v.title}
                   </h3>
                   <p className="max-w-md text-[13px] leading-relaxed text-white/80 drop-shadow-[0_1px_6px_rgba(0,0,0,0.5)] sm:text-[14px]">
                     {v.tags}
                   </p>
                   <a
-                    href="#"
-                    className="mt-1 flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wide text-white transition-colors hover:text-brand-neon-green"
+                    href="/#contact"
+                    tabIndex={isActive ? 0 : -1}
+                    className="group mt-1 inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wide transition-colors duration-300 sm:text-[13px]"
                     style={{ color: v.color }}
                   >
                     Learn More
-                    <ArrowRight className="h-3.5 w-3.5" />
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
                   </a>
                 </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-6 flex max-w-full flex-wrap items-center justify-center gap-x-7 gap-y-3 sm:mt-10">
+            {verticals.map((v, i) => {
+              const isActive = i === activeIndex;
+              return (
+                <button
+                  key={v.slug}
+                  type="button"
+                  onClick={() => goToStep(i)}
+                  className="group flex items-center gap-2"
+                >
+                  <span
+                    className="font-sans text-[11px] font-bold tabular-nums transition-colors duration-300"
+                    style={{ color: isActive ? v.color : "rgba(255,255,255,0.35)" }}
+                  >
+                    0{i + 1}
+                  </span>
+                  <span
+                    className={`whitespace-nowrap text-[11px] font-bold uppercase tracking-wide transition-colors duration-300 sm:text-[12px] ${
+                      isActive ? "text-white" : "text-white/40 group-hover:text-white/70"
+                    }`}
+                  >
+                    {v.title}
+                  </span>
+                </button>
               );
             })}
           </div>

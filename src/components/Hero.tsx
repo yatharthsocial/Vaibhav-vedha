@@ -10,7 +10,7 @@ const navLinks = [
   { label: "PROPERTY & ASSET MANAGEMENT", href: "#" },
   { label: "PROJECTS", href: "#" },
   { label: "LEADERSHIP", href: "#" },
-  { label: "INSIGHTS", href: "#" },
+  { label: "INSIGHTS", href: "/insights" },
 ];
 
 // How long one character's roll takes, and how far apart (per

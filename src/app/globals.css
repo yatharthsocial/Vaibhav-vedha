@@ -46,3 +46,34 @@ body {
     opacity: 1;
   }
 }
+
+/* A barely-there ambient glow drifting behind a section — slow and
+   subtle enough to read as "the page feels alive" rather than as an
+   obvious moving object, which is the difference between a tasteful
+   corporate background and a distracting one. Long duration (18s) and
+   a small travel distance are both deliberate. */
+@keyframes ambient-drift {
+  0%,
+  100% {
+    transform: translate(-6%, -4%) scale(1);
+  }
+  50% {
+    transform: translate(6%, 4%) scale(1.08);
+  }
+}
+
+/* A continuous, seamless horizontal drift for the gallery modal's
+   marquee rows — each row's content is rendered twice back to back,
+   and the track slides exactly one copy's width (-50%) before
+   snapping back to 0%, so the loop point is invisible. Direction
+   (normal vs reverse) and speed are set per row via inline style, not
+   separate keyframes, since the translate distance is identical
+   either way. */
+@keyframes marquee-x {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}

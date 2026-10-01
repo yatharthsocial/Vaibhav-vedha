@@ -1,47 +1,30 @@
-import { Eye, Target } from "lucide-react";
-import type { ComponentType } from "react";
-
 const stats: { value: number; suffix: string; label: string }[] = [
   { value: 5, suffix: "+", label: "Business Verticals" },
   { value: 50, suffix: "+", label: "Projects Delivered" },
   { value: 1, suffix: "M+", label: "Lives Impacted" },
 ];
 
-const missionVision: {
-  key: string;
-  icon: ComponentType<{ className?: string }>;
-  label: string;
-  text: string;
-  tagline: string;
-  cardClass: string;
-  badgeClass: string;
-  taglineClass: string;
-}[] = [
+const missionVision: { key: string; index: string; label: string; text: string }[] = [
   {
     key: "mission",
-    icon: Target,
+    index: "01",
     label: "Our Mission",
-    text: "We build diversified ventures across real estate, infrastructure, education, advisory and digital, each one designed to keep compounding value long after it's delivered.",
-    tagline: "From blueprint to impact, without the gap.",
-    cardClass: "border-brand-gold-light/25",
-    badgeClass: "border-brand-gold-light/40 text-brand-gold-light",
-    taglineClass: "text-brand-gold-light",
+    text: "We run businesses in real estate, infrastructure, legal consulting, interiors and design, and media and branding, each one profitable on its own and built to outlast whoever's running it day to day.",
   },
   {
     key: "vision",
-    icon: Eye,
+    index: "02",
     label: "Our Vision",
-    text: "To be the partner Indian institutions and businesses trust most for sustainable growth, turning ambition into results across every sector we serve.",
-    tagline: "Karnataka first. India next. Global always.",
-    cardClass: "border-brand-neon-green/25",
-    badgeClass: "border-brand-neon-green/40 text-brand-neon-green",
-    taglineClass: "text-brand-neon-green",
+    text: "To be the group Indian institutions call first when they need something built properly, backed by a track record rather than a pitch deck.",
   },
 ];
 
 export default function AboutSection() {
   return (
-    <section className="relative flex h-full w-full flex-col justify-center overflow-hidden bg-brand-green-dark text-white [@media(max-height:500px)]:!justify-start">
+    <section
+      id="about"
+      className="relative flex h-full w-full flex-col justify-center overflow-hidden bg-brand-green-dark text-white [@media(max-height:500px)]:!justify-start"
+    >
       {/* A quiet depth cue instead of a dot-grid + neon blob: just a
           soft darkening toward the edges so the panel doesn't read as
           a flat color fill. */}
@@ -68,74 +51,63 @@ export default function AboutSection() {
 
           <h2
             data-reveal
-            className="font-sans max-w-lg text-[28px] font-extrabold leading-[1.2] tracking-tight [@media(max-height:500px)]:!text-[20px] [@media(max-height:500px)]:!leading-[1.15] sm:text-[40px] sm:leading-[1.15] lg:text-[48px]"
+            className="font-sans max-w-lg text-[30px] font-medium leading-[1.15] tracking-tight text-white/90 [@media(max-height:500px)]:!text-[20px] [@media(max-height:500px)]:!leading-[1.15] sm:text-[42px] sm:leading-[1.12] lg:text-[50px]"
             style={{ opacity: 0, transform: "translateY(18px)", willChange: "opacity, transform" }}
           >
-            A diversified enterprise, <span className="text-brand-neon-green">built to compound.</span>
+            A diversified enterprise,{" "}
+            <span className="font-extrabold text-brand-neon-green">built to compound.</span>
           </h2>
 
           <p
             data-reveal
-            className="mt-3 max-w-md text-[12.5px] leading-relaxed text-white/60 [@media(max-height:500px)]:!mt-1.5 [@media(max-height:500px)]:!text-[11px] [@media(max-height:500px)]:!leading-snug sm:mt-5 sm:text-[14.5px] lg:text-[15px]"
+            className="mt-4 max-w-md border-l-2 border-white/10 pl-4 text-[12.5px] leading-relaxed text-white/55 [@media(max-height:500px)]:!mt-1.5 [@media(max-height:500px)]:!text-[11px] [@media(max-height:500px)]:!leading-snug [@media(max-height:500px)]:!pl-3 sm:mt-6 sm:pl-5 sm:text-[14.5px] lg:text-[15px]"
             style={{ opacity: 0, transform: "translateY(18px)", willChange: "opacity, transform" }}
           >
-            Vaibhav Veda Green Ventures works across real estate,
-            infrastructure, education, advisory and digital solutions. Every
-            business under our umbrella runs on the same principle: growth
-            that lasts, for our partners, our people and the communities we
-            serve.
+            Vaibhav Veda Green Ventures runs five businesses: real estate,
+            infrastructure, legal consulting, interiors and design, and
+            media and branding. We started in Karnataka and still answer
+            to the same people who backed us then, which is why nothing
+            here gets built to just look good on paper.
           </p>
 
           <div
             data-reveal
-            className="mt-5 grid grid-cols-3 [@media(max-height:500px)]:!mt-3 sm:mt-9 sm:flex sm:flex-wrap"
+            className="relative mt-6 grid grid-cols-3 gap-4 [@media(max-height:500px)]:!mt-3 sm:mt-10 sm:gap-10"
             style={{ opacity: 0, transform: "translateY(18px)", willChange: "opacity, transform" }}
           >
-            {stats.map((s, i) => (
-              <div
-                key={s.label}
-                className={`pr-2 sm:pr-10 ${i > 0 ? "border-l border-white/10 pl-2 sm:pl-10" : ""}`}
-              >
-                <div className="font-sans text-[20px] font-extrabold tracking-tight text-brand-neon-green [@media(max-height:500px)]:!text-[16px] sm:text-[26px]">
+            <span className="absolute -top-3 left-0 h-px w-10 bg-brand-gold-light/60 [@media(max-height:500px)]:hidden sm:-top-4" />
+            {stats.map((s) => (
+              <div key={s.label}>
+                <div className="font-sans text-[22px] font-light tracking-tight text-white [@media(max-height:500px)]:!text-[16px] sm:text-[32px]">
                   <span data-count={s.value}>0</span>
-                  {s.suffix}
+                  <span className="text-brand-neon-green">{s.suffix}</span>
                 </div>
-                <div className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.15em] text-white/45 sm:text-[10px]">
+                <div className="mt-1 text-[9px] font-semibold uppercase tracking-[0.15em] text-white/40 sm:text-[10px]">
                   {s.label}
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="mt-5 grid grid-cols-2 gap-3 border-t border-white/10 pt-5 [@media(max-height:500px)]:!mt-3 [@media(max-height:500px)]:!pt-3 sm:mt-9 sm:gap-4 sm:pt-7">
-            {missionVision.map((m) => {
-              const Icon = m.icon;
-              return (
-                <div
-                  key={m.key}
-                  data-reveal
-                  className={`rounded-lg border bg-white/[0.03] p-3 [@media(max-height:500px)]:!p-2 sm:p-4 ${m.cardClass}`}
-                  style={{ opacity: 0, transform: "translateY(18px)", willChange: "opacity, transform" }}
-                >
-                  <div className="flex items-center gap-2 sm:gap-2.5">
-                    <span
-                      className={`flex h-6 w-6 flex-none items-center justify-center rounded-full border sm:h-7 sm:w-7 ${m.badgeClass}`}
-                    >
-                      <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                    </span>
-                    <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/85 sm:text-[10px]">
-                      {m.label}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-[10.5px] leading-relaxed text-white/55 [@media(max-height:500px)]:!mt-1 [@media(max-height:500px)]:!text-[9.5px] [@media(max-height:500px)]:!leading-snug sm:mt-3 sm:text-[12px]">
-                    {m.text}
-                  </p>
-                  <p className={`mt-2 text-[10px] italic [@media(max-height:500px)]:!mt-1 sm:mt-3 sm:text-[11.5px] ${m.taglineClass}`}>
-                    &ldquo;{m.tagline}&rdquo;
-                  </p>
+          <div className="mt-7 grid grid-cols-2 gap-6 [@media(max-height:500px)]:!mt-3 [@media(max-height:500px)]:!gap-3 sm:mt-11 sm:gap-10">
+            {missionVision.map((m) => (
+              <div
+                key={m.key}
+                data-reveal
+                className="border-t border-white/15 pt-3 [@media(max-height:500px)]:!pt-2 sm:pt-4"
+                style={{ opacity: 0, transform: "translateY(18px)", willChange: "opacity, transform" }}
+              >
+                <div className="flex items-baseline gap-2">
+                  <span className="font-sans text-[11px] font-semibold text-white/30">{m.index}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/85 sm:text-[11px]">
+                    {m.label}
+                  </span>
                 </div>
-              );
-            })}
+                <p className="mt-2.5 text-[11px] leading-relaxed text-white/55 [@media(max-height:500px)]:!mt-1 [@media(max-height:500px)]:!text-[9.5px] [@media(max-height:500px)]:!leading-snug sm:mt-3 sm:text-[12.5px]">
+                  {m.text}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
 

@@ -39,9 +39,16 @@ const REVEAL_WINDOW = 0.35;
 const REVEAL_RISE_PX = 18;
 // Index of the stats row within the [data-reveal] list (in DOM order:
 // eyebrow, headline, paragraph, stats row, mission card, vision card) —
-// used to drive the stat numbers' count-up off the same reveal timing
-// the row itself fades in with, instead of a separate timer.
+// used to know when that row starts revealing, which is what triggers
+// the count-up below.
 const STATS_REVEAL_INDEX = 3;
+// Once triggered, the stat numbers count up on their own fixed timer
+// (not tied to further scroll) — a real counting animation rather than
+// a value that's merely scrubbed by scroll position, which only moves
+// while the user is actively scrolling and can stall or jump around
+// instead of reading as a deliberate count.
+const STATS_COUNT_DURATION_MS = 1400;
+const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
 
 // Used only as the divisor for the scroll-progress fraction below —
 // the pinned panel's actual on-screen size comes from the CSS `lvh`
@@ -80,6 +87,27 @@ export default function HeroAboutTransition() {
       aboutLayerRef.current?.querySelectorAll<HTMLElement>("[data-reveal]") ?? null;
     const countEls =
       aboutLayerRef.current?.querySelectorAll<HTMLElement>("[data-count]") ?? null;
+
+    // Runs once, the first time the stats row starts revealing — its
+    // own rAF loop on a fixed duration, independent of scroll, so the
+    // numbers animate smoothly up to their target instead of jumping
+    // around with scroll speed/direction.
+    let statsStarted = false;
+    const startStatsCountUp = () => {
+      if (statsStarted || !countEls || countEls.length === 0) return;
+      statsStarted = true;
+      const start = performance.now();
+      const tick = (now: number) => {
+        const t = Math.min(1, (now - start) / STATS_COUNT_DURATION_MS);
+        const eased = easeOutCubic(t);
+        countEls.forEach((el) => {
+          const target = Number(el.dataset.count ?? 0);
+          el.textContent = String(Math.round(target * eased));
+        });
+        if (t < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    };
 
     // Drives both the slide-in and the blur directly off scroll
     // position (rather than a CSS transition) so they track the scroll
@@ -137,15 +165,11 @@ export default function HeroAboutTransition() {
         el.style.transform = `translate3d(0, ${(1 - t) * REVEAL_RISE_PX}px, 0)`;
       });
 
-      // Stat numbers count up from 0 to their target in step with the
-      // stats row's own reveal, instead of just fading in already at
-      // full value — reuses that row's exact timing so the count
-      // finishes right as the row finishes settling into place.
-      const statsT = revealAt(STATS_REVEAL_INDEX);
-      countEls?.forEach((el) => {
-        const target = Number(el.dataset.count ?? 0);
-        el.textContent = String(Math.round(target * statsT));
-      });
+      // The moment the stats row starts fading/rising into place,
+      // kick off its one-time count-up animation (see
+      // startStatsCountUp above) — a real timed animation rather than
+      // tying the digits directly to scroll position.
+      if (revealAt(STATS_REVEAL_INDEX) > 0) startStatsCountUp();
     };
 
     const onScroll = () => {
