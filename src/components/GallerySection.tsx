@@ -11,8 +11,14 @@ import { allGalleryImages, featuredGalleryImages, previewGalleryImages } from "@
 // below is the part that's actually scroll-linked.
 const TYPE_DURATION_MS = 900;
 
-// How many viewport-heights of extra scroll drive the image sweep.
-const SCROLL_SPAN_MULTIPLIER = 1.4;
+// How many viewport-heights of extra scroll drive the image sweep —
+// larger means the images travel more slowly per scroll tick.
+const SCROLL_SPAN_MULTIPLIER = 2.1;
+
+// Fraction of the remaining distance the track covers each frame as it
+// eases toward its scroll-derived target — lower is a softer, slower
+// glide; 1 would snap straight to the scroll position.
+const SWEEP_EASE = 0.08;
 
 // The pinned panel's own height (min(92lvh,780px), set directly on the
 // two elements below since Tailwind's build-time class scanner can't
@@ -143,6 +149,13 @@ export default function GallerySection() {
     let viewportWidth = 0;
     let trackWidth = 0;
 
+    // The track eases toward targetX rather than jumping to it, so
+    // discrete scroll-wheel steps read as one continuous glide.
+    let targetX = 0;
+    let currentX: number | null = null;
+    let easeFrame: number | null = null;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
     const measure = () => {
       const track = trackRef.current;
       const viewport = viewportRef.current;
@@ -151,11 +164,28 @@ export default function GallerySection() {
       trackWidth = track.scrollWidth;
     };
 
-    const updateProgress = () => {
+    const applyX = (x: number) => {
+      const track = trackRef.current;
+      if (track) track.style.transform = `translate3d(${x}px, 0, 0)`;
+    };
+
+    const ease = () => {
+      easeFrame = null;
+      if (currentX === null) return;
+      const diff = targetX - currentX;
+      if (Math.abs(diff) < 0.5) {
+        currentX = targetX;
+      } else {
+        currentX += diff * SWEEP_EASE;
+        easeFrame = requestAnimationFrame(ease);
+      }
+      applyX(currentX);
+    };
+
+    const updateProgress = (snap = false) => {
       ticking = false;
       const wrapper = wrapperRef.current;
-      const track = trackRef.current;
-      if (!wrapper || !track) return;
+      if (!wrapper) return;
 
       const rect = wrapper.getBoundingClientRect();
       const scrolled = -rect.top;
@@ -165,20 +195,26 @@ export default function GallerySection() {
 
       const startX = viewportWidth;
       const endX = -trackWidth;
-      const x = startX + progress * (endX - startX);
-      track.style.transform = `translate3d(${x}px, 0, 0)`;
+      targetX = startX + progress * (endX - startX);
+
+      if (snap || reduceMotion || currentX === null) {
+        currentX = targetX;
+        applyX(currentX);
+      } else if (easeFrame === null) {
+        easeFrame = requestAnimationFrame(ease);
+      }
     };
 
     const onScroll = () => {
       if (!ticking) {
         ticking = true;
-        requestAnimationFrame(updateProgress);
+        requestAnimationFrame(() => updateProgress());
       }
     };
 
     const resizeObserver = new ResizeObserver(() => {
       measure();
-      updateProgress();
+      updateProgress(true);
     });
     if (trackRef.current) resizeObserver.observe(trackRef.current);
     if (viewportRef.current) resizeObserver.observe(viewportRef.current);
@@ -197,12 +233,13 @@ export default function GallerySection() {
     };
 
     measure();
-    updateProgress();
+    updateProgress(true);
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize);
     window.visualViewport?.addEventListener("resize", onResize);
     return () => {
       if (resizeSettleTimer) clearTimeout(resizeSettleTimer);
+      if (easeFrame !== null) cancelAnimationFrame(easeFrame);
       resizeObserver.disconnect();
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
@@ -221,7 +258,7 @@ export default function GallerySection() {
           image has actually exited past the left edge does the
           wrapper's scroll range end and the page release into normal
           scroll below it. */}
-      <div ref={wrapperRef} className="relative h-[calc(min(92lvh,780px)+130lvh)]">
+      <div ref={wrapperRef} className="relative h-[calc(min(92lvh,780px)+195lvh)]">
         <div
           ref={panelRef}
           className="sticky top-0 flex h-[min(92lvh,780px)] w-full flex-col items-center overflow-hidden"
