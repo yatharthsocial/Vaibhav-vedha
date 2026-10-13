@@ -1,228 +1,365 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 const verticals: {
   slug: string;
   title: string;
-  color: string;
-  tags: string;
+  tagline: string;
   image: string;
+  // Card fill and the ink used on it — all drawn from the brand palette
+  // (cream, gold, sage, green) so the stack reads as one family.
+  bg: string;
+  ink: string;
+  accent: string;
 }[] = [
   {
-    slug: "real-estate",
-    title: "Real Estate",
-    color: "#e0be4a",
-    tags: "Residential & Commercial | Farm Plots | Sustainable Design",
-    image: "/verticals/build.jpg",
-  },
-  {
-    slug: "infrastructure",
-    title: "Infrastructure",
-    color: "#39ff14",
-    tags: "Transportation | Utilities | Urban Development",
+    slug: "green",
+    title: "Green",
+    tagline: "For a cleaner, greener future.",
     image: "/verticals/green.jpg",
+    bg: "#f7f5ef",
+    ink: "#0e3b23",
+    accent: "#1f7a45",
   },
   {
-    slug: "legal",
-    title: "Legal Consulting",
-    color: "#c19bff",
-    tags: "Regulatory Compliance | Risk Advisory | Corporate Law",
-    image: "/verticals/advise.jpg",
+    slug: "build",
+    title: "Build",
+    tagline: "Building with tomorrow in mind.",
+    image: "/verticals/build.jpg",
+    bg: "#e0be4a",
+    ink: "#0e3b23",
+    accent: "#0e3b23",
   },
   {
-    slug: "interiors",
-    title: "Interiors & Design",
-    color: "#6fb8ff",
-    tags: "Residential & Commercial | Space Planning | Design",
+    slug: "learn",
+    title: "Learn",
+    tagline: "Skills that open doors.",
     image: "/verticals/learn.jpg",
+    bg: "#d7e8dc",
+    ink: "#0e3b23",
+    accent: "#1f7a45",
   },
   {
-    slug: "media",
-    title: "Media & Branding",
-    color: "#4ee2e8",
-    tags: "Branding | Advertising | Media Strategy",
+    slug: "advise",
+    title: "Advise",
+    tagline: "Clarity for meaningful growth.",
+    image: "/verticals/advise.jpg",
+    bg: "#1f7a45",
+    ink: "#ffffff",
+    accent: "#39ff14",
+  },
+  {
+    slug: "digital",
+    title: "Digital",
+    tagline: "Technology that moves ideas forward.",
     image: "/verticals/digital.jpg",
+    bg: "#ffffff",
+    ink: "#0e3b23",
+    accent: "#c9a227",
   },
 ];
 
-const STEPS = verticals.length;
+const COUNT = verticals.length;
 
-// How many viewport-heights of scroll distance drive the step-through,
-// on top of the one viewport-height the pinned panel itself occupies —
-// matches the rest of this site's pinned-scroll sections (see
-// HeroAboutTransition), just scaled up for 5 steps instead of 2.
-const SCROLL_SPAN_MULTIPLIER = 3;
+// Where each card comes to rest once it's landed on the stack — small,
+// alternating tilts so the pile reads as cards set down by hand rather
+// than a perfectly squared deck.
+const REST_ROTATION = [-2.5, 2, -1.5, 2.5, 0];
+// Extra tilt a card carries while it's still travelling up, unwinding
+// to its resting angle as it lands.
+const ENTRY_ROTATION = 7;
+// What each card underneath gives up per card landed on top of it —
+// a little scale, a little lift and some shade — so the pile has depth
+// and the cards below visibly settle as a new one arrives.
+const DEPTH_SCALE = 0.045;
+const DEPTH_LIFT_PX = 18;
+const DEPTH_SHADE = 0.16;
+
+// How many viewport-heights of scroll drive the five cards, on top of
+// the one viewport-height the pinned panel itself occupies (matches the
+// wrapper's 500lvh below).
+const SCROLL_SPAN_MULTIPLIER = 4;
+// The last card lands at this fraction of the scroll span, leaving the
+// rest as a short hold on the finished stack before the page moves on.
+const STACK_DONE_AT = 0.9;
+// Fraction of the remaining distance the animation covers each frame as
+// it eases toward the scroll position — what turns discrete wheel ticks
+// into one continuous glide. Lower is softer.
+const SCROLL_EASE = 0.07;
+
+// Gentle at both ends, no sharp acceleration in the middle — reads as
+// a card being set down rather than thrown.
+const easeInOutSine = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
 
 const getViewportHeight = () => window.visualViewport?.height ?? window.innerHeight;
 
+// Initial (pre-JS) state for anything that swaps with the active card.
+const stateFor = (i: number, active: number) =>
+  i === active ? "active" : i < active ? "before" : "after";
+
 export default function BusinessSection() {
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const stickyRef = useRef<HTMLDivElement>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const shadeRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const barRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
   useEffect(() => {
-    let ticking = false;
     let viewportHeight = getViewportHeight();
+    let target = 0;
+    let current = 0;
+    let frame: number | null = null;
+    let lastActive = -1;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const swapEls = wrapperRef.current?.querySelectorAll<HTMLElement>("[data-swap]") ?? [];
 
-    const syncHeights = () => {
-      const wrapper = wrapperRef.current;
-      const sticky = stickyRef.current;
-      if (!wrapper || !sticky) return;
-      viewportHeight = getViewportHeight();
-      wrapper.style.height = `${viewportHeight * (1 + SCROLL_SPAN_MULTIPLIER)}px`;
-      sticky.style.height = `${viewportHeight}px`;
-    };
+    const render = (progress: number) => {
+      // Card i owns the i-th fifth of the stacking range: it rises from
+      // below the viewport, unwinding its extra tilt, and lands on top.
+      const stackProgress = Math.min(1, progress / STACK_DONE_AT) * COUNT;
+      const ts = verticals.map((_, i) =>
+        easeInOutSine(Math.min(1, Math.max(0, stackProgress - i))),
+      );
 
-    // GREEN (index 0) is what's on screen the moment this section is
-    // reached — progress is 0 there, so no extra "default" state is
-    // needed. Each further step of scroll steps the active vertical
-    // forward, ending on DIGITAL.
-    const updateProgress = () => {
-      ticking = false;
-      const wrapper = wrapperRef.current;
-      if (!wrapper) return;
+      let active = 0;
+      let depthAbove = 0;
+      for (let i = COUNT - 1; i >= 0; i--) {
+        const t = ts[i];
+        if (t > 0.5 && active === 0) active = i;
+        const card = cardRefs.current[i];
+        if (card) {
+          const rotation =
+            REST_ROTATION[i] + (1 - t) * ENTRY_ROTATION * (i % 2 === 0 ? 1 : -1);
+          const scale = 1 - depthAbove * DEPTH_SCALE;
+          card.style.transform = `translate3d(0, calc(${(1 - t) * 105}vh - ${
+            depthAbove * DEPTH_LIFT_PX
+          }px), 0) rotate(${rotation}deg) scale(${scale})`;
+        }
+        const shade = shadeRefs.current[i];
+        if (shade) shade.style.opacity = String(Math.min(0.6, depthAbove * DEPTH_SHADE));
+        depthAbove += t;
+      }
 
-      const rect = wrapper.getBoundingClientRect();
-      const total = rect.height - viewportHeight;
-      const scrolled = -rect.top;
-      const progress = total > 0 ? Math.min(1, Math.max(0, scrolled / total)) : 0;
-      const index = Math.min(STEPS - 1, Math.floor(progress * STEPS));
-      setActiveIndex((prev) => (prev === index ? prev : index));
-    };
+      // Each progress segment fills as its card travels in.
+      barRefs.current.forEach((bar, i) => {
+        if (bar) bar.style.transform = `scaleX(${ts[i]})`;
+      });
 
-    const onScroll = () => {
-      if (!ticking) {
-        ticking = true;
-        requestAnimationFrame(updateProgress);
+      if (active !== lastActive) {
+        lastActive = active;
+        swapEls.forEach((el) => {
+          el.dataset.state = stateFor(Number(el.dataset.swap), active);
+        });
       }
     };
 
-    const onResize = () => {
-      syncHeights();
-      onScroll();
+    const tick = () => {
+      frame = null;
+      const diff = target - current;
+      if (Math.abs(diff) < 0.0002) {
+        current = target;
+      } else {
+        current += diff * SCROLL_EASE;
+        frame = requestAnimationFrame(tick);
+      }
+      render(current);
     };
 
-    syncHeights();
-    updateProgress();
+    const readTarget = () => {
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
+      const span = viewportHeight * SCROLL_SPAN_MULTIPLIER;
+      const scrolled = -wrapper.getBoundingClientRect().top;
+      target = span > 0 ? Math.min(1, Math.max(0, scrolled / span)) : 0;
+    };
+
+    const onScroll = () => {
+      readTarget();
+      if (reduceMotion) {
+        current = target;
+        render(current);
+      } else if (frame === null) {
+        frame = requestAnimationFrame(tick);
+      }
+    };
+
+    let resizeSettleTimer: ReturnType<typeof setTimeout> | null = null;
+    const onResize = () => {
+      if (resizeSettleTimer) clearTimeout(resizeSettleTimer);
+      resizeSettleTimer = setTimeout(() => {
+        viewportHeight = getViewportHeight();
+        onScroll();
+      }, 150);
+    };
+
+    // Snap on load, so a page restored mid-scroll doesn't animate in
+    // from the start.
+    readTarget();
+    current = target;
+    render(current);
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize);
     window.visualViewport?.addEventListener("resize", onResize);
     return () => {
+      if (frame !== null) cancelAnimationFrame(frame);
+      if (resizeSettleTimer) clearTimeout(resizeSettleTimer);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
       window.visualViewport?.removeEventListener("resize", onResize);
     };
   }, []);
 
-  // Lets the index list below double as real navigation, not just a
-  // readout — jumps to the middle of whichever step's slice of the
-  // scroll range, computed the same way updateProgress reads it back.
-  const goToStep = (index: number) => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-    const viewportHeight = getViewportHeight();
-    const total = viewportHeight * SCROLL_SPAN_MULTIPLIER;
-    const wrapperTop = wrapper.getBoundingClientRect().top + window.scrollY;
-    window.scrollTo({ top: wrapperTop + ((index + 0.5) / STEPS) * total, behavior: "smooth" });
-  };
-
   return (
-    <div id="verticals" ref={wrapperRef} className="relative h-[400svh] bg-black">
-      <div ref={stickyRef} className="sticky top-0 h-[100svh] w-full overflow-hidden">
-        {/* Each vertical's own photo as a full-bleed background,
-            crossfading to the next as the active step changes. */}
+    // lvh rather than svh/dvh, same as HeroAboutTransition: a fixed
+    // size that never resizes mid-scroll as a mobile address bar
+    // animates. 500lvh = 100 pinned + 400 scroll span.
+    <div id="verticals" ref={wrapperRef} className="relative h-[500lvh] bg-brand-green-dark">
+      <div className="sticky top-0 h-[100lvh] w-full overflow-hidden text-white">
+        {/* Background — the active vertical's own photo, deep in brand
+            green, crossfading as the cards change. */}
         <div className="absolute inset-0">
           {verticals.map((v, i) => (
             <div
               key={v.slug}
-              className="absolute inset-0 transition-opacity duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
-              style={{ opacity: i === activeIndex ? 1 : 0 }}
-              aria-hidden={i !== activeIndex}
+              data-swap={i}
+              data-state={stateFor(i, 0)}
+              className="vertical-bg absolute inset-0"
+              aria-hidden="true"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={v.image} alt="" className="h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-black/60" />
             </div>
           ))}
+          <div className="absolute inset-0 bg-brand-green-dark/[0.88]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-brand-green-dark via-brand-green-dark/60 to-transparent" />
         </div>
 
-        {/* Centered, like the content itself actually deserves the
-            middle of the frame — but now paired with a real index
-            row underneath, so there's an actual sense of "step 2 of
-            5" instead of verticals just silently replacing each
-            other with no record of where you are or where else you
-            could go. Each list entry is real navigation (goToStep),
-            not just a readout. */}
-        <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center text-white">
-          <div className="mb-8 flex items-center gap-3">
-            <span className="h-px w-10 bg-brand-gold-light/60" />
-            <span className="text-[11px] font-bold tracking-[0.3em] text-brand-gold-light">
-              OUR VERTICALS
+        <div className="relative mx-auto flex h-full max-w-[1500px] flex-col px-6 pt-[9vh] sm:px-10 lg:flex-row lg:items-center lg:gap-12 lg:px-16 lg:pt-0">
+          {/* Left — the active vertical's name, set huge, rolling to
+              the next one as each card lands. */}
+          <div className="flex flex-none flex-col lg:h-[74vh] lg:w-[46%] lg:justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.35em] text-white/45 sm:text-[12px]">
+              Our Verticals
             </span>
-            <span className="h-px w-10 bg-brand-gold-light/60" />
+
+            <div className="mt-3 lg:mt-0">
+              <div className="relative overflow-hidden" style={{ height: "0.95em", fontSize: "clamp(52px, 7.4vw, 128px)" }}>
+                {verticals.map((v, i) => (
+                  <span
+                    key={v.slug}
+                    data-swap={i}
+                    data-state={stateFor(i, 0)}
+                    className="vertical-swap absolute inset-x-0 top-0 font-sans font-extrabold uppercase leading-[0.95] tracking-[-0.04em]"
+                  >
+                    {v.title}
+                    <span className="text-brand-neon-green">.</span>
+                  </span>
+                ))}
+              </div>
+
+              <div className="relative mt-3 h-[1.5em] overflow-hidden text-[15px] text-white/70 sm:mt-5 sm:text-[19px]">
+                {verticals.map((v, i) => (
+                  <span
+                    key={v.slug}
+                    data-swap={i}
+                    data-state={stateFor(i, 0)}
+                    className="vertical-swap absolute inset-x-0 top-0 leading-[1.5]"
+                    style={{ transitionDelay: "80ms" }}
+                  >
+                    {v.tagline}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Five-part progress — each segment fills as its card
+                travels in. Desktop only; phones need the room. */}
+            <div className="hidden lg:block">
+              <div className="flex gap-2">
+                {verticals.map((v, i) => (
+                  <span key={v.slug} className="relative h-[3px] flex-1 overflow-hidden bg-white/15">
+                    <span
+                      ref={(el) => {
+                        barRefs.current[i] = el;
+                      }}
+                      className="absolute inset-0 origin-left bg-brand-neon-green"
+                      style={{ transform: "scaleX(0)" }}
+                    />
+                  </span>
+                ))}
+              </div>
+              <div className="mt-4 flex justify-between text-[11px] font-semibold uppercase tracking-[0.2em] text-white/40">
+                <span>One vision</span>
+                <span>Five ways to create impact</span>
+              </div>
+            </div>
           </div>
 
-          <div className="relative h-[190px] w-full max-w-lg sm:h-[220px]">
-            {verticals.map((v, i) => {
-              const isActive = i === activeIndex;
-              return (
+          {/* Right — the stack. Every card is pre-positioned off-screen
+              below (matching what render() writes at progress 0), so
+              nothing flashes in place before the scroll effect runs. */}
+          <div className="relative mt-7 min-h-0 flex-1 pb-[6vh] lg:mt-0 lg:flex lg:h-full lg:items-center lg:pb-0">
+            <div className="relative mx-auto h-full w-full max-w-[420px] lg:h-[74vh] lg:max-w-[520px]">
+              {verticals.map((v, i) => (
                 <div
                   key={v.slug}
-                  className="absolute inset-0 flex flex-col items-center justify-center gap-3 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
-                  style={{
-                    opacity: isActive ? 1 : 0,
-                    transform: `translateY(${isActive ? 0 : 20}px)`,
+                  ref={(el) => {
+                    cardRefs.current[i] = el;
                   }}
-                  aria-hidden={!isActive}
+                  className="absolute inset-0 flex flex-col gap-4 overflow-hidden rounded-2xl p-5 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.65)] will-change-transform sm:gap-5 sm:p-7"
+                  style={{
+                    backgroundColor: v.bg,
+                    color: v.ink,
+                    transform: `translate3d(0, 105vh, 0) rotate(${REST_ROTATION[i]}deg)`,
+                  }}
                 >
-                  <h3 className="font-sans text-[36px] font-extrabold uppercase leading-[1.05] tracking-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] sm:text-[52px]">
-                    {v.title}
-                  </h3>
-                  <p className="max-w-md text-[13px] leading-relaxed text-white/80 drop-shadow-[0_1px_6px_rgba(0,0,0,0.5)] sm:text-[14px]">
-                    {v.tags}
-                  </p>
-                  <a
-                    href="/#contact"
-                    tabIndex={isActive ? 0 : -1}
-                    className="group mt-1 inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wide transition-colors duration-300 sm:text-[13px]"
-                    style={{ color: v.color }}
-                  >
-                    Learn More
-                    <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
-                  </a>
-                </div>
-              );
-            })}
-          </div>
+                  <div className="flex items-start justify-between">
+                    <span
+                      className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] sm:text-[11px]"
+                      style={{ backgroundColor: v.ink, color: v.bg }}
+                    >
+                      Vertical
+                    </span>
+                    <span
+                      className="font-sans font-extrabold leading-[0.8] tracking-tighter"
+                      style={{ fontSize: "clamp(56px, 7vw, 112px)" }}
+                    >
+                      0{i + 1}
+                    </span>
+                  </div>
 
-          <div className="mt-6 flex max-w-full flex-wrap items-center justify-center gap-x-7 gap-y-3 sm:mt-10">
-            {verticals.map((v, i) => {
-              const isActive = i === activeIndex;
-              return (
-                <button
-                  key={v.slug}
-                  type="button"
-                  onClick={() => goToStep(i)}
-                  className="group flex items-center gap-2"
-                >
-                  <span
-                    className="font-sans text-[11px] font-bold tabular-nums transition-colors duration-300"
-                    style={{ color: isActive ? v.color : "rgba(255,255,255,0.35)" }}
-                  >
-                    0{i + 1}
-                  </span>
-                  <span
-                    className={`whitespace-nowrap text-[11px] font-bold uppercase tracking-wide transition-colors duration-300 sm:text-[12px] ${
-                      isActive ? "text-white" : "text-white/40 group-hover:text-white/70"
-                    }`}
-                  >
-                    {v.title}
-                  </span>
-                </button>
-              );
-            })}
+                  <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={v.image} alt="" className="h-full w-full object-cover" />
+                  </div>
+
+                  <div>
+                    <h3
+                      className="font-sans font-extrabold uppercase leading-[0.9] tracking-tight"
+                      style={{ fontSize: "clamp(40px, 4.6vw, 72px)" }}
+                    >
+                      {v.title}
+                    </h3>
+                    <p className="mt-2 flex items-center gap-2 text-[14px] font-semibold sm:text-[16px]">
+                      <span
+                        className="h-2 w-2 flex-none rounded-full"
+                        style={{ backgroundColor: v.accent }}
+                      />
+                      {v.tagline}
+                    </p>
+                  </div>
+
+                  {/* Darkens the card as more land on top of it. */}
+                  <div
+                    ref={(el) => {
+                      shadeRefs.current[i] = el;
+                    }}
+                    className="pointer-events-none absolute inset-0 bg-black"
+                    style={{ opacity: 0 }}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

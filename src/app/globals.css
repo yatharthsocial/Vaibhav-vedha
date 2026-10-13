@@ -23,6 +23,7 @@
   --color-brand-neon-green: var(--brand-neon-green);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-playfair);
 }
 
 body {
@@ -75,5 +76,133 @@ body {
   }
   to {
     transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* About panel reveal — a timed, staggered entrance that plays once
+   HeroAboutTransition marks the panel [data-revealed], instead of being
+   scrubbed by scroll position (which jumped with every wheel tick).
+   Each element waits --i steps of the stagger, then eases into place
+   on a long, soft-landing curve. Hiding (scrolling back up) is quick
+   and unstaggered, so a replay never starts from a half-faded state. */
+#about [data-reveal] {
+  transition-property: opacity, transform;
+  transition-duration: 1100ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: calc(var(--i, 0) * 120ms);
+}
+
+#about [data-reveal="line"] {
+  transition-duration: 1300ms;
+}
+
+/* The About photo: a curtain lifts off it while the photo itself
+   settles from a slight zoom — both pure transforms on their own GPU
+   layers, so the browser never repaints the image mid-animation. The
+   curtain sits in the "image" slot, so it starts first. */
+#about [data-reveal="image"] img {
+  transform: scale(1);
+  transition: transform 2200ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+#about .about-curtain {
+  transform: translate3d(0, -101%, 0);
+  transition: transform 1400ms cubic-bezier(0.76, 0, 0.24, 1);
+  will-change: transform;
+}
+
+#about:not([data-revealed]) [data-reveal] {
+  transition-duration: 350ms;
+  transition-delay: 0ms;
+}
+
+#about:not([data-revealed]) [data-reveal="fade"] {
+  opacity: 0;
+  transform: translate3d(0, 24px, 0);
+}
+
+#about:not([data-revealed]) [data-reveal="line"] {
+  transform: translate3d(0, 110%, 0);
+}
+
+#about:not([data-revealed]) [data-reveal="image"] img {
+  transform: scale(1.18);
+  transition-duration: 350ms;
+}
+
+#about:not([data-revealed]) .about-curtain {
+  transform: translate3d(0, 0, 0);
+  transition-duration: 350ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #about [data-reveal],
+  #about [data-reveal] img,
+  #about .about-curtain {
+    transition: none !important;
+  }
+}
+
+/* Verticals section — elements that change with the active card.
+   BusinessSection sets data-state to before / active / after; names
+   and taglines roll vertically through their masks (out the top,
+   in from the bottom), backgrounds crossfade with a slow settle. */
+.vertical-swap {
+  transition:
+    transform 900ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.vertical-swap[data-state="before"] {
+  transform: translate3d(0, -105%, 0);
+  opacity: 0;
+}
+
+.vertical-swap[data-state="after"] {
+  transform: translate3d(0, 105%, 0);
+  opacity: 0;
+}
+
+.vertical-bg {
+  transition: opacity 1200ms ease;
+}
+
+.vertical-bg img {
+  transition: transform 2400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.vertical-bg:not([data-state="active"]) {
+  opacity: 0;
+}
+
+.vertical-bg:not([data-state="active"]) img {
+  transform: scale(1.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vertical-swap,
+  .vertical-bg,
+  .vertical-bg img {
+    transition: none;
+  }
+}
+
+/* Partnerships — the scrolling band's bloom separators turn slowly as
+   the row drifts past. */
+@keyframes bloom-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.bloom-spin {
+  animation: bloom-spin 12s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bloom-spin {
+    animation: none;
   }
 }

@@ -123,6 +123,13 @@ export default function Hero() {
           frozen frame looks like, while leaving the right side of the
           video untouched. */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/55 via-black/20 to-transparent" />
+      {/* Bottom scrim for the headline block — fades in with it, so the
+          video plays untouched until then. */}
+      <div
+        className={`pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/65 via-black/25 to-transparent transition-opacity duration-[1800ms] ease-out ${
+          videoEnded ? "opacity-100" : "opacity-0"
+        }`}
+      />
 
       {/* Top row: logo (left), primary nav (centered, desktop), and a
           hamburger toggle (mobile) — all one row. A 3-column grid keeps
@@ -227,25 +234,65 @@ export default function Hero() {
         ))}
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 top-[50%] -translate-y-1/2">
-        <div className="max-w-2xl px-4 lg:px-10">
-          <h1
-            className={`font-sans text-[28px] font-extrabold leading-[1.2] tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.45)] [@media(max-height:500px)]:text-[20px] [@media(max-height:500px)]:leading-[1.2] [@media(min-width:640px)_and_(min-height:500px)]:leading-[1.15] [@media(min-width:640px)_and_(max-width:1023px)_and_(min-height:500px)]:text-[40px] [@media(min-width:1024px)_and_(min-height:500px)]:text-[48px] ${popInClass}`}
-            style={{
-              ...popInStyle,
-              // A crisp black outline on the letterforms themselves,
-              // independent of the drop-shadow (which just lifts the
-              // whole glyph off the background rather than tracing it).
-              WebkitTextStroke: "1.5px black",
-              paintOrder: "stroke fill",
-            }}
-          >
-            Building businesses.
-            <br />
-            Creating value.
-            <br />
-            Shaping a <span className="text-brand-neon-green">sustainable</span> future.
-          </h1>
+      {/* The headline block — anchored low in the frame (bottom-left)
+          so the footage above it stays the subject, and revealed as a
+          single unit once the video ends: one container fading, rising
+          and un-blurring together, rather than each line arriving on
+          its own. */}
+      <div
+        className={`pointer-events-none absolute inset-x-0 bottom-0 pb-14 transition-[opacity,transform,filter] duration-[1800ms] ease-[cubic-bezier(0.22,1,0.36,1)] [@media(max-height:500px)]:pb-5 sm:pb-16 lg:pb-20 ${
+          videoEnded ? "opacity-100" : "opacity-0"
+        }`}
+        style={{
+          transform: videoEnded ? "translateY(0)" : "translateY(32px)",
+          filter: videoEnded ? "blur(0px)" : "blur(8px)",
+          transitionDelay: videoEnded ? "250ms" : "0ms",
+        }}
+      >
+        <div className="mx-auto max-w-[1500px] px-4 lg:px-10">
+          <div className="max-w-2xl">
+            <div className="flex items-center gap-3 [@media(max-height:500px)]:hidden">
+             
+              <span className="text-[11px] font-bold tracking-[0.3em] text-brand-gold-light sm:text-[12px]">
+                VAIBHAV VEDA GREEN VENTURES
+              </span>
+            </div>
+
+            <h1 className="mt-4 font-sans text-[36px] font-extrabold leading-[1.05] tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.55)] [@media(max-height:500px)]:mt-0 [@media(max-height:500px)]:text-[24px] sm:text-[52px] lg:text-[64px]">
+              <span className="text-brand-neon-green">Sustainable</span> Today.
+              <br />
+              Stronger Tomorrow.
+            </h1>
+
+            <p className="mt-4 max-w-md text-[14.5px] leading-relaxed text-white/85 drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)] [@media(max-height:500px)]:mt-1.5 [@media(max-height:500px)]:text-[12px] sm:text-[17px]">
+              Progress becomes meaningful when people, ideas and purpose come together.
+            </p>
+
+            <div className="pointer-events-auto mt-7 flex flex-wrap items-center gap-3 [@media(max-height:500px)]:mt-2.5">
+              <a
+                href="#about"
+                onClick={(e) => {
+                  // About lives inside the pinned Hero→About transition,
+                  // not at its own scroll offset — it's fully in view one
+                  // viewport-height of scroll into the page (see
+                  // HeroAboutTransition's SCROLL_SPAN_MULTIPLIER), so jump
+                  // a little past that, into the hold zone.
+                  e.preventDefault();
+                  const vh = window.visualViewport?.height ?? window.innerHeight;
+                  window.scrollTo({ top: vh * 1.3, behavior: "smooth" });
+                }}
+                className="rounded-full bg-brand-neon-green px-6 py-3 text-[12px] font-bold uppercase tracking-wide text-brand-green-dark shadow-[0_8px_24px_-8px_rgba(57,255,20,0.6)] transition-[background-color,transform] duration-300 hover:-translate-y-0.5 hover:bg-white [@media(max-height:500px)]:px-4 [@media(max-height:500px)]:py-1.5 [@media(max-height:500px)]:text-[10px] sm:text-[13px]"
+              >
+                Discover Vaibhav Veda
+              </a>
+              <a
+                href="#verticals"
+                className="rounded-full border border-white/60 bg-white/10 px-6 py-3 text-[12px] font-bold uppercase tracking-wide text-white backdrop-blur-md transition-[border-color,color,transform] duration-300 hover:-translate-y-0.5 hover:border-brand-neon-green hover:text-brand-neon-green [@media(max-height:500px)]:px-4 [@media(max-height:500px)]:py-1.5 [@media(max-height:500px)]:text-[10px] sm:text-[13px]"
+              >
+                Explore Our Verticals
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </section>

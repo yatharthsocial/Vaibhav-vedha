@@ -1,4 +1,5 @@
 import BusinessSection from "@/components/BusinessSection";
+import CollaborationSection from "@/components/CollaborationSection";
 import ContactSection from "@/components/ContactSection";
 import FAQSection from "@/components/FAQSection";
 import Footer from "@/components/Footer";
@@ -12,6 +13,7 @@ export default function Home() {
       <HeroAboutTransition />
       <LeadershipSection />
       <BusinessSection />
+      <CollaborationSection />
       <GallerySection />
       <FAQSection />
       <ContactSection />

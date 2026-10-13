@@ -1,6 +1,6 @@
 "use client";
 
-import { Mail, MapPin, Phone } from "lucide-react";
+import { Building2, Mail, Phone } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import {
@@ -15,6 +15,17 @@ const socials = [
   { key: "linkedin", icon: LinkedinIcon, href: "#" },
   { key: "facebook", icon: FacebookIcon, href: "#" },
   { key: "twitter", icon: TwitterIcon, href: "#" },
+];
+
+const contactDetails = [
+  { label: "Mobile", value: "+91-9945235259", href: "tel:+919945235259", icon: Phone },
+  {
+    label: "Email",
+    value: "ceo.vaibhavvedagreenventures@gmail.com",
+    href: "mailto:ceo.vaibhavvedagreenventures@gmail.com",
+    icon: Mail,
+  },
+  { label: "Corporate", value: "Vaibhav Veda Green Ventures Private Limited", icon: Building2 },
 ];
 
 const inputClass =
@@ -53,7 +64,7 @@ export default function ContactSection() {
     <section
       id="contact"
       ref={sectionRef}
-      className="relative w-full overflow-hidden bg-white px-6 py-24 lg:px-16 lg:py-28"
+      className="relative w-full overflow-hidden bg-[#f5f4f1] px-6 py-24 lg:px-16 lg:py-28"
     >
       {/* A quiet depth cue behind the form card, echoing the soft
           radial glows used elsewhere (About, FAQ) rather than a flat
@@ -94,8 +105,8 @@ export default function ContactSection() {
               transitionDelay: visible ? "90ms" : "0ms",
             }}
           >
-            Let&apos;s build something{" "}
-            <span className="text-brand-neon-green">together.</span>
+            The future is something we{" "}
+            <span className="text-brand-green-light">create together.</span>
           </h2>
 
           <p
@@ -106,8 +117,11 @@ export default function ContactSection() {
               transitionDelay: visible ? "180ms" : "0ms",
             }}
           >
-            Have a project in mind or want to explore a partnership? We&apos;d love to hear from
-            you.
+            A greener economy. Stronger institutions. Skilled people. Responsible infrastructure.
+            Smarter technology. Every partnership moves us one step closer.
+            <span className="mt-3 block font-semibold text-brand-green-dark">
+              Let&apos;s collaborate. Let&apos;s create. Let&apos;s celebrate progress.
+            </span>
           </p>
 
           <div
@@ -118,36 +132,28 @@ export default function ContactSection() {
               transitionDelay: visible ? "270ms" : "0ms",
             }}
           >
-            <div className="flex items-start gap-4">
-              <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-brand-green/10">
-                <MapPin className="h-[18px] w-[18px] text-brand-green" />
-              </span>
-              <span className="pt-2 text-left text-[14px] leading-relaxed text-black/70">
-                Vaibhav Veda Green Ventures, Karnataka, India
-              </span>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-brand-green/10">
-                <Mail className="h-[18px] w-[18px] text-brand-green" />
-              </span>
-              <a
-                href="mailto:info@vaibhavveda.com"
-                className="text-[14px] text-black/70 transition-colors hover:text-brand-green-dark"
-              >
-                info@vaibhavveda.com
-              </a>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-brand-green/10">
-                <Phone className="h-[18px] w-[18px] text-brand-green" />
-              </span>
-              <a
-                href="tel:+911234567890"
-                className="text-[14px] text-black/70 transition-colors hover:text-brand-green-dark"
-              >
-                +91 12345 67890
-              </a>
-            </div>
+            {contactDetails.map(({ label, value, href, icon: Icon }) => (
+              <div key={label} className="flex items-center gap-4 text-left">
+                <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-brand-green/10">
+                  <Icon className="h-[18px] w-[18px] text-brand-green" />
+                </span>
+                <div className="min-w-0">
+                  <span className="block text-[11px] font-semibold uppercase tracking-wide text-black/40">
+                    {label}
+                  </span>
+                  {href ? (
+                    <a
+                      href={href}
+                      className="block break-all text-[14px] font-medium text-black/75 transition-colors hover:text-brand-green-dark sm:break-normal"
+                    >
+                      {value}
+                    </a>
+                  ) : (
+                    <span className="block text-[14px] font-medium text-black/75">{value}</span>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
 
           <div
@@ -177,7 +183,7 @@ export default function ContactSection() {
             flat, and the same scroll-reveal entrance as the rest of
             the section. */}
         <div
-          className="rounded-2xl border border-black/10 bg-[#f5f4f1] p-6 shadow-[0_20px_50px_-24px_rgba(14,59,35,0.3)] transition-[opacity,transform] duration-[900ms] ease-[cubic-bezier(0.16,1,0.3,1)] sm:p-8"
+          className="rounded-2xl border border-black/10 bg-white p-6 shadow-[0_20px_50px_-24px_rgba(14,59,35,0.3)] transition-[opacity,transform] duration-[900ms] ease-[cubic-bezier(0.16,1,0.3,1)] sm:p-8"
           style={{
             opacity: visible ? 1 : 0,
             transform: visible ? "translateY(0)" : "translateY(32px)",
@@ -219,7 +225,7 @@ export default function ContactSection() {
                 type="submit"
                 className="w-full rounded-lg bg-brand-neon-green px-6 py-3 text-[13px] font-bold uppercase tracking-wide text-brand-green-dark transition-[opacity,transform] duration-300 hover:-translate-y-0.5 hover:opacity-90"
               >
-                Send Message
+                Start a Conversation
               </button>
             </form>
           )}

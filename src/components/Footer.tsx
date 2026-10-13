@@ -142,15 +142,18 @@ export default function Footer() {
               Get in Touch
             </span>
             <ul className="mt-5 space-y-3 text-[13.5px] text-white/60 sm:space-y-2.5">
-              <li>Karnataka, India</li>
+              <li>Vaibhav Veda Green Ventures Private Limited</li>
               <li>
-                <a href="mailto:info@vaibhavveda.com" className="transition-colors hover:text-white">
-                  info@vaibhavveda.com
+                <a
+                  href="mailto:ceo.vaibhavvedagreenventures@gmail.com"
+                  className="break-all transition-colors hover:text-white"
+                >
+                  ceo.vaibhavvedagreenventures@gmail.com
                 </a>
               </li>
               <li>
-                <a href="tel:+911234567890" className="transition-colors hover:text-white">
-                  +91 12345 67890
+                <a href="tel:+919945235259" className="transition-colors hover:text-white">
+                  +91-9945235259
                 </a>
               </li>
             </ul>

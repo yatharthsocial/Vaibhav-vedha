@@ -248,7 +248,7 @@ export default function GallerySection() {
   }, []);
 
   return (
-    <section id="gallery" className="relative w-full bg-white">
+    <section id="gallery" className="relative w-full bg-[#f5f4f1]">
       {/* Pinned panel: heading, watermark and image track all live
           together in this one box, so the whole composition pins in
           place — right where it first sits fully in view — rather than

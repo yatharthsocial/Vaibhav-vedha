@@ -1,6 +1,8 @@
 "use client";
 
-import Image from "next/image";
+import Image, { type StaticImageData } from "next/image";
+import drNaveenKumarPhoto from "@/DrNaveenKumar.png";
+import drShilpaNaveenPhoto from "@/DrShilpaNaveenKumar.png";
 import { useEffect, useRef, useState } from "react";
 
 const leaders: {
@@ -10,55 +12,59 @@ const leaders: {
   bio: string;
   tags: string[];
   highlights: { title: string; text: string }[];
-  photo: string;
+  photo: StaticImageData;
+  // object-position for the portrait crop — the source photos aren't
+  // framed for a 4:5 box, so each one says where its subject sits.
+  photoPosition: string;
 }[] = [
   {
     index: "01",
-    name: "Dr. Shilpa Naveen Kumar",
-    title: "Director, Academics Operations & Finance",
-    bio: "Runs academics, finance and partnerships, and is the one people actually go to when something needs deciding. The curriculum, the budgets and the partner agreements all go through her before anything gets signed off, and she's built most of the academic structure herself rather than inheriting it.",
-    tags: ["Academic Design", "Finance", "Partnerships", "Mentor"],
-    // Each highlight is kept to the same length (16 words) on purpose
-    // — with three side-by-side columns, uneven lengths wrap to
-    // different line counts and leave the row with a ragged, unaligned
-    // bottom edge instead of a clean one.
+    name: "Dr. M. Naveen Kumar",
+    title: "Chairman & Managing Director",
+    bio: "Dr. Naveen brings together enterprise building, green growth, skill development, infrastructure and institutional collaboration. His work connects industry, academia, government ecosystems and emerging opportunities, giving Vaibhav Veda a leadership perspective grounded in partnerships and long-term institution building.",
+    tags: ["Entrepreneur", "Orator", "Green Energy Propagator", "Institutional Leader"],
+    // Kept to roughly the same length on purpose — with three
+    // side-by-side columns, uneven lengths wrap to different line
+    // counts and leave the row with a ragged, unaligned bottom edge.
     highlights: [
       {
-        title: "Academic Design",
-        text: "Built the curriculum framework every academic program now runs against, from first principles rather than templates.",
+        title: "Board of Director",
+        text: "Skill Council for Green Jobs.",
       },
       {
-        title: "Financial Oversight",
-        text: "Reviews and signs off on every budget and vendor agreement before anything is approved or sent.",
+        title: "Governing Council Member",
+        text: "Sector Skill Council for Green Jobs, MSDE, Government of India.",
       },
       {
-        title: "Partnerships",
-        text: "The first point of contact for every institutional and corporate tie-up this group ever enters into.",
+        title: "Syndicate Member",
+        text: "Governor-nominated, Bengaluru North University, Government of Karnataka.",
       },
     ],
-    photo: "/leadership/shilpa-naveen-kumar.jpg",
+    photo: drNaveenKumarPhoto,
+    photoPosition: "42% center",
   },
   {
     index: "02",
-    name: "Dr. Naveen Kumar",
-    title: "Managing Director",
-    bio: "Sets the direction across every vertical, and stays close enough to each one to know when it's off track. He'd rather sit in on a site visit than read a summary of one, and most of the people who work with him say he asks the hard question before anyone else gets to it.",
-    tags: ["Strategist", "Mentor", "Visionary", "Guide"],
+    name: "Dr. Shilpa H. Naveen",
+    title: "Director",
+    bio: "An economist by profession, social entrepreneur, edupreneur and transformation speaker, Dr. Shilpa brings a deeply people-centred perspective to the Vaibhav Veda journey. Her work reflects a belief that growth becomes meaningful when its benefits travel beyond organisations and reach individuals, families and communities.",
+    tags: ["Economist", "Social Entrepreneur", "Edupreneur", "Transformation Speaker"],
     highlights: [
       {
-        title: "Strategic Direction",
-        text: "Sets the roadmap for each vertical and reviews progress against it every quarter, not only yearly.",
+        title: "Health",
+        text: "Because dignity begins with well-being.",
       },
       {
-        title: "On-Ground Presence",
-        text: "Shows up to site visits and project reviews in person rather than relying on written updates.",
+        title: "Education",
+        text: "Because knowledge creates choices.",
       },
       {
-        title: "Vertical Oversight",
-        text: "The constant thread across real estate, infrastructure, legal, interiors and media, pointing every team one direction.",
+        title: "Empowerment",
+        text: "Because opportunity becomes powerful when people can shape their own future.",
       },
     ],
-    photo: "/leadership/naveen-kumar.jpg",
+    photo: drShilpaNaveenPhoto,
+    photoPosition: "50% 15%",
   },
 ];
 
@@ -106,8 +112,12 @@ export default function LeadershipSection() {
             OUR LEADERSHIP
           </span>
           <h2 className="mt-4 font-sans text-[28px] font-extrabold leading-[1.1] tracking-tight text-brand-green-dark sm:text-[38px]">
-            Two people, one direction.
+            Leadership with a Wider Purpose
           </h2>
+          <p className="mx-auto mt-4 max-w-xl text-[14px] leading-relaxed text-black/55 sm:text-[15px]">
+            Behind Vaibhav Veda is a belief that enterprise carries the ability to create
+            opportunity far beyond business itself.
+          </p>
         </div>
 
         {/* Full-width profile rows, alternating photo side, instead of
@@ -133,7 +143,9 @@ export default function LeadershipSection() {
                     alt={l.name}
                     fill
                     sizes="(min-width: 640px) 36vw, 100vw"
+                    placeholder="blur"
                     className="object-cover"
+                    style={{ objectPosition: l.photoPosition }}
                   />
                 </div>
               </div>
@@ -204,8 +216,8 @@ export default function LeadershipSection() {
                       the same bordered index/label/text pattern the
                       About section's Mission/Vision pair already
                       uses. */}
-                  {/* line-clamp (title to 1 line, text to 2) plus a
-                      min-height on the text matching exactly 2 lines
+                  {/* line-clamp (title to 2 lines, text to 3) plus a
+                      min-height on each matching that line count
                       makes every column the same height no matter how
                       the actual copy's word/character count varies —
                       a layout-level guarantee rather than hand-tuning
@@ -221,10 +233,10 @@ export default function LeadershipSection() {
                   >
                     {l.highlights.map((h) => (
                       <div key={h.title}>
-                        <span className="line-clamp-1 block text-[10px] font-bold uppercase tracking-[0.15em] text-brand-green-dark/80">
+                        <span className="line-clamp-2 block min-h-[2.6em] text-[10px] font-bold uppercase leading-[1.3] tracking-[0.15em] text-brand-green-dark/80">
                           {h.title}
                         </span>
-                        <p className="line-clamp-2 mt-2 min-h-[42px] text-[12.5px] leading-relaxed text-black/50">
+                        <p className="line-clamp-3 mt-2 min-h-[62px] text-[12.5px] leading-relaxed text-black/50">
                           {h.text}
                         </p>
                       </div>

@@ -6,13 +6,6 @@ import Hero from "./Hero";
 
 // How much the hero blurs by once About has fully covered it.
 const MAX_BLUR_PX = 12;
-// How blurred About itself starts while still off-screen, before it
-// sharpens into focus as it slides in.
-const ABOUT_BLUR_PX = 10;
-// Fraction of the scroll progress at which About finishes sharpening —
-// under 1 so it settles into full focus a little before the slide-in
-// itself finishes, rather than staying soft right up to the last pixel.
-const ABOUT_SHARPEN_BY = 0.75;
 // How many viewport-heights of scroll distance drive the reveal, on
 // top of the one viewport-height the pinned panel itself occupies —
 // 1 more, matching the original 200svh (100 pinned + 100 scroll span).
@@ -25,31 +18,28 @@ const SCROLL_SPAN_MULTIPLIER = 1;
 // be read before it's gone.
 const HOLD_SPAN_MULTIPLIER = 0.75;
 
-// About's own content (eyebrow, headline, paragraph, stats, cards) fades
-// and rises in one piece at a time as the panel slides into place,
-// rather than all snapping into view together the moment the slide
-// finishes — each [data-reveal] element (in DOM order) gets its own
-// slice of the same progress value. REVEAL_START is how far into the
-// slide the first element begins; REVEAL_STAGGER offsets each
-// following element's start; REVEAL_WINDOW is how much progress each
-// one takes to go from invisible to fully in place.
-const REVEAL_START = 0.05;
-const REVEAL_STAGGER = 0.09;
-const REVEAL_WINDOW = 0.35;
-const REVEAL_RISE_PX = 18;
-// Index of the stats row within the [data-reveal] list (in DOM order:
-// eyebrow, headline, paragraph, stats row, mission card, vision card) —
-// used to know when that row starts revealing, which is what triggers
-// the count-up below.
-const STATS_REVEAL_INDEX = 3;
-// Once triggered, the stat numbers count up on their own fixed timer
-// (not tied to further scroll) — a real counting animation rather than
-// a value that's merely scrubbed by scroll position, which only moves
-// while the user is actively scrolling and can stall or jump around
-// instead of reading as a deliberate count.
-const STATS_COUNT_DURATION_MS = 1400;
-const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
-
+// About's own content (photo, meta row, headline lines, text, list,
+// CTA) plays as a timed, staggered CSS animation (see the #about rules
+// in globals.css) rather than being scrubbed by scroll position — a
+// scroll wheel moves in discrete ticks, so scrubbed reveals visibly
+// jumped. The animation starts once the panel is this far in, and
+// resets (so it can play again) once it's scrolled back below
+// ABOUT_RESET_AT — the gap between the two stops it flickering when
+// the user hovers around a single threshold.
+const ABOUT_REVEAL_AT = 0.8;
+const ABOUT_RESET_AT = 0.1;
+// Fraction of the remaining distance the slide/blur covers each frame
+// as it eases toward the scroll position — lower is a softer glide; 1
+// would track the scroll exactly (and jump with every wheel tick).
+const SLIDE_EASE = 0.1;
+// Once the reveal starts, scrolling *down* is held for this long — about
+// as long as the staggered About animation takes to finish (last item's
+// delay + duration in the #about rules in globals.css) — so a fast
+// scroll can't carry the user into the next section before the photo
+// and text have actually appeared. Scrolling up is never blocked, and
+// the hold only happens once per pass (reset alongside the reveal).
+const ABOUT_HOLD_MS = 2000;
+const HOLD_KEYS = new Set(["ArrowDown", "PageDown", "End", " ", "Spacebar"]);
 // Used only as the divisor for the scroll-progress fraction below —
 // the pinned panel's actual on-screen size comes from the CSS `lvh`
 // units in the JSX, not from this. A live, address-bar-aware value is
@@ -80,102 +70,102 @@ export default function HeroAboutTransition() {
     // mid-scroll — this removes that mechanism entirely rather than
     // trying to time around it).
     let viewportHeight = getViewportHeight();
-    // Queried once — AboutSection's markup is static, so this NodeList
-    // stays valid for the component's lifetime and doesn't need
-    // re-querying on every scroll frame.
-    const revealEls =
-      aboutLayerRef.current?.querySelectorAll<HTMLElement>("[data-reveal]") ?? null;
-    const countEls =
-      aboutLayerRef.current?.querySelectorAll<HTMLElement>("[data-count]") ?? null;
+    const aboutSection = aboutLayerRef.current?.querySelector<HTMLElement>("#about") ?? null;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    // Runs once, the first time the stats row starts revealing — its
-    // own rAF loop on a fixed duration, independent of scroll, so the
-    // numbers animate smoothly up to their target instead of jumping
-    // around with scroll speed/direction.
-    let statsStarted = false;
-    const startStatsCountUp = () => {
-      if (statsStarted || !countEls || countEls.length === 0) return;
-      statsStarted = true;
-      const start = performance.now();
-      const tick = (now: number) => {
-        const t = Math.min(1, (now - start) / STATS_COUNT_DURATION_MS);
-        const eased = easeOutCubic(t);
-        countEls.forEach((el) => {
-          const target = Number(el.dataset.count ?? 0);
-          el.textContent = String(Math.round(target * eased));
-        });
-        if (t < 1) requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    };
+    // targetProgress is where the scroll position says the transition
+    // should be; currentProgress eases toward it every frame, so
+    // discrete wheel ticks become one continuous glide. Only reads
+    // layout (getBoundingClientRect) and writes transform/filter —
+    // compositor-only properties — so it stays cheap per frame.
+    let targetProgress = 0;
+    let currentProgress = 0;
+    let easeFrame: number | null = null;
 
-    // Drives both the slide-in and the blur directly off scroll
-    // position (rather than a CSS transition) so they track the scroll
-    // 1:1 — that's what makes it feel physically smooth rather than
-    // laggy or delayed. Only reads layout (getBoundingClientRect) and
-    // writes transform/filter — both of those are compositor-only
-    // properties that don't trigger layout, so this stays cheap enough
-    // to run on every scroll frame without jank.
-    const updateProgress = () => {
-      ticking = false;
-      const wrapper = wrapperRef.current;
+    let heldThisPass = false;
+    let holdUntil = 0;
+    const isHolding = () => performance.now() < holdUntil;
+
+    const render = (progress: number) => {
       const heroLayer = heroLayerRef.current;
       const aboutLayer = aboutLayerRef.current;
-      if (!wrapper || !heroLayer || !aboutLayer) return;
+      if (!heroLayer || !aboutLayer) return;
+
+      // Hero itself never moves and never scales — it only blurs
+      // behind the incoming panel.
+      heroLayer.style.filter = `blur(${progress * MAX_BLUR_PX}px)`;
+
+      // About starts fully off-screen to the right and slides to cover
+      // it. Transform only — an earlier version also blurred this
+      // whole full-screen layer as it arrived, but re-blurring a
+      // viewport-sized layer (photo included) every frame is exactly
+      // what made the About image stutter, especially in Safari.
+      aboutLayer.style.transform = `translate3d(${(1 - progress) * 100}%, 0, 0)`;
+
+      if (aboutSection) {
+        if (progress >= ABOUT_REVEAL_AT) aboutSection.dataset.revealed = "";
+        else if (progress <= ABOUT_RESET_AT) delete aboutSection.dataset.revealed;
+      }
+    };
+
+    const ease = () => {
+      easeFrame = null;
+      const diff = targetProgress - currentProgress;
+      if (Math.abs(diff) < 0.0005) {
+        currentProgress = targetProgress;
+      } else {
+        currentProgress += diff * SLIDE_EASE;
+        easeFrame = requestAnimationFrame(ease);
+      }
+      render(currentProgress);
+    };
+
+    const updateProgress = (snap = false) => {
+      ticking = false;
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
 
       const rect = wrapper.getBoundingClientRect();
       const scrolled = -rect.top;
       // Only the SCROLL_SPAN_MULTIPLIER portion drives the animation —
       // scrolling further than that (into the hold zone) just clamps
       // progress at 1, so About sits fully in view, unblurred, for the
-      // rest of the pinned wrapper instead of the transition dragging
-      // out over the whole thing.
+      // rest of the pinned wrapper.
       const transitionSpan = viewportHeight * SCROLL_SPAN_MULTIPLIER;
-      const progress =
-        transitionSpan > 0 ? Math.min(1, Math.max(0, scrolled / transitionSpan)) : 0;
+      const rawProgress = transitionSpan > 0 ? scrolled / transitionSpan : 0;
+      targetProgress = Math.min(1, Math.max(0, rawProgress));
 
-      // Hero itself never moves and never scales — it only blurs
-      // behind the incoming panel. (An earlier version also scaled it
-      // up slightly here, meant to compensate for a blur-edge
-      // artifact, but that scale was itself a real, literal zoom
-      // happening on every scroll — worse than the problem it was
-      // meant to fix. Removed; blur alone doesn't move or resize
-      // anything.)
-      heroLayer.style.filter = `blur(${progress * MAX_BLUR_PX}px)`;
+      // Start the hold off the *raw* scroll position (not the smoothed
+      // one), so it engages the moment the user actually crosses the
+      // threshold. If a single big jump (fling, Page Down) already
+      // carried them past the fully-in point, pull back to it — still
+      // inside the pinned range, so About is what they see.
+      if (!reduceMotion && aboutSection) {
+        if (!heldThisPass && rawProgress >= ABOUT_REVEAL_AT) {
+          heldThisPass = true;
+          holdUntil = performance.now() + ABOUT_HOLD_MS;
+          aboutSection.dataset.revealed = "";
+        } else if (rawProgress <= ABOUT_RESET_AT) {
+          heldThisPass = false;
+        }
+        if (isHolding() && rawProgress > 1) {
+          window.scrollTo({ top: window.scrollY - (scrolled - transitionSpan), behavior: "instant" });
+          targetProgress = 1;
+        }
+      }
 
-      // About starts fully off-screen to the right and slides to cover
-      // it, arriving out of focus and sharpening as it settles into
-      // place — a soft "focus pull" rather than a hard, instantly-crisp
-      // cut, so the content itself feels like it's smoothly resolving.
-      aboutLayer.style.transform = `translate3d(${(1 - progress) * 100}%, 0, 0)`;
-      const sharpenProgress = Math.min(1, progress / ABOUT_SHARPEN_BY);
-      aboutLayer.style.filter = `blur(${(1 - sharpenProgress) * ABOUT_BLUR_PX}px)`;
-
-      // Each element gets its own start point, staggered in DOM order,
-      // so they settle into place one after another rather than all at
-      // once — same clamp-and-map approach as progress itself.
-      const revealAt = (i: number) => {
-        const start = REVEAL_START + i * REVEAL_STAGGER;
-        return Math.min(1, Math.max(0, (progress - start) / REVEAL_WINDOW));
-      };
-
-      revealEls?.forEach((el, i) => {
-        const t = revealAt(i);
-        el.style.opacity = String(t);
-        el.style.transform = `translate3d(0, ${(1 - t) * REVEAL_RISE_PX}px, 0)`;
-      });
-
-      // The moment the stats row starts fading/rising into place,
-      // kick off its one-time count-up animation (see
-      // startStatsCountUp above) — a real timed animation rather than
-      // tying the digits directly to scroll position.
-      if (revealAt(STATS_REVEAL_INDEX) > 0) startStatsCountUp();
+      if (snap || reduceMotion) {
+        currentProgress = targetProgress;
+        render(currentProgress);
+      } else if (easeFrame === null) {
+        easeFrame = requestAnimationFrame(ease);
+      }
     };
 
     const onScroll = () => {
       if (!ticking) {
         ticking = true;
-        requestAnimationFrame(updateProgress);
+        requestAnimationFrame(() => updateProgress());
       }
     };
 
@@ -192,13 +182,50 @@ export default function HeroAboutTransition() {
       }, 150);
     };
 
-    updateProgress();
+    // Downward-scroll blockers for the hold — non-passive so they can
+    // cancel the gesture. Upward scrolling always passes through.
+    const onWheel = (e: WheelEvent) => {
+      if (isHolding() && e.deltaY > 0) e.preventDefault();
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!isHolding() || !HOLD_KEYS.has(e.key)) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable]")) return;
+      e.preventDefault();
+    };
+    let touchStartY = 0;
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0]?.clientY ?? 0;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      const y = e.touches[0]?.clientY ?? 0;
+      // Finger moving up = page scrolling down.
+      if (isHolding() && touchStartY - y > 0) e.preventDefault();
+    };
+
+    // Snap on load, so a page restored mid-scroll doesn't glide in
+    // from the top. A page restored already past About shouldn't be
+    // held, so the hold is only armed once the user is above it.
+    updateProgress(true);
+    if (targetProgress >= ABOUT_REVEAL_AT) {
+      heldThisPass = true;
+      aboutSection?.setAttribute("data-revealed", "");
+    }
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
     window.addEventListener("resize", onResize);
     window.visualViewport?.addEventListener("resize", onResize);
     return () => {
       if (resizeSettleTimer) clearTimeout(resizeSettleTimer);
+      if (easeFrame !== null) cancelAnimationFrame(easeFrame);
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("resize", onResize);
       window.visualViewport?.removeEventListener("resize", onResize);
     };
@@ -237,9 +264,8 @@ export default function HeroAboutTransition() {
           // on every load: it sat there, fully covering Hero, until JS
           // caught up and pushed it off-screen a beat later.
           style={{
-            willChange: "transform, filter",
+            willChange: "transform",
             transform: "translate3d(100%, 0, 0)",
-            filter: `blur(${ABOUT_BLUR_PX}px)`,
           }}
         >
           <AboutSection />
