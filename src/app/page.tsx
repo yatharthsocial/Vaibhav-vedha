@@ -1,3 +1,4 @@
+import BusinessPlatformSection from "@/components/BusinessPlatformSection";
 import BusinessSection from "@/components/BusinessSection";
 import CollaborationSection from "@/components/CollaborationSection";
 import ContactSection from "@/components/ContactSection";
@@ -13,6 +14,7 @@ export default function Home() {
       <HeroAboutTransition />
       <LeadershipSection />
       <BusinessSection />
+      <BusinessPlatformSection />
       <CollaborationSection />
       <GallerySection />
       <FAQSection />
