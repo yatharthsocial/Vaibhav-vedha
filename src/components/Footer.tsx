@@ -20,6 +20,16 @@ const columns: { title: string; links: { label: string; href: string }[] }[] = [
     ],
   },
   {
+    title: "Verticals",
+    links: [
+      { label: "Green", href: "/green" },
+      { label: "Build", href: "/build" },
+      { label: "Learn", href: "/learn" },
+      { label: "Advise", href: "/advise" },
+      { label: "Digital", href: "/digital" },
+    ],
+  },
+  {
     title: "More",
     links: [
       { label: "Gallery", href: "/#gallery" },
@@ -84,7 +94,7 @@ export default function Footer() {
             scroll), then Get in Touch full-width and centered again.
             From sm up, this settles back into the original left-aligned
             row of columns. */}
-        <div className="grid grid-cols-2 gap-x-8 gap-y-10 text-center sm:grid-cols-2 sm:gap-12 sm:text-left lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-10 text-center sm:grid-cols-2 sm:gap-12 sm:text-left lg:grid-cols-[1.4fr_1fr_1fr_1fr_1.2fr]">
           <div className="col-span-2 flex flex-col items-center sm:col-span-1 sm:mx-0 sm:max-w-xs sm:items-start">
             <Image
               src="/logo.png"
@@ -94,8 +104,9 @@ export default function Footer() {
               className="h-14 w-14"
             />
             <p className="mt-4 max-w-xs text-[13px] leading-relaxed text-white/50">
-              A diversified enterprise spanning real estate, infrastructure, legal consulting,
-              interiors and design, and media and branding.
+              Bringing together industry, institutions, expertise and
+              opportunity across five verticals: Green, Build, Learn, Advise and
+              Digital.
             </p>
             <div className="mt-6 flex items-center gap-3">
               {socials.map(({ key, icon: Icon, href }) => (
@@ -152,7 +163,10 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="tel:+919945235259" className="transition-colors hover:text-white">
+                <a
+                  href="tel:+919945235259"
+                  className="transition-colors hover:text-white"
+                >
                   +91-9945235259
                 </a>
               </li>
@@ -183,13 +197,20 @@ export default function Footer() {
 
         <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-6 sm:mt-10 sm:flex-row">
           <p className="text-center text-[12px] text-white/40">
-            © {new Date().getFullYear()} Vaibhav Veda Green Ventures. All rights reserved.
+            © {new Date().getFullYear()} Vaibhav Veda Green Ventures. All rights
+            reserved.
           </p>
           <div className="flex items-center gap-5">
-            <a href="#" className="text-[12px] text-white/40 transition-colors hover:text-white">
+            <a
+              href="#"
+              className="text-[12px] text-white/40 transition-colors hover:text-white"
+            >
               Privacy Policy
             </a>
-            <a href="#" className="text-[12px] text-white/40 transition-colors hover:text-white">
+            <a
+              href="#"
+              className="text-[12px] text-white/40 transition-colors hover:text-white"
+            >
               Terms of Service
             </a>
           </div>

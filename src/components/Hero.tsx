@@ -5,12 +5,12 @@ import { useEffect, useState } from "react";
 import HeroVideo from "./HeroVideo";
 
 const navLinks = [
-  { label: "HOME", href: "#" },
-  { label: "ABOUT US", href: "#" },
-  { label: "PROPERTY & ASSET MANAGEMENT", href: "#" },
-  { label: "PROJECTS", href: "#" },
-  { label: "LEADERSHIP", href: "#" },
+  { label: "HOME", href: "/" },
+  { label: "VERTICALS", href: "#verticals" },
+  { label: "PLATFORM", href: "#platform" },
+  { label: "LEADERSHIP", href: "#leadership" },
   { label: "INSIGHTS", href: "/insights" },
+  { label: "CONTACT", href: "#contact" },
 ];
 
 // How long one character's roll takes, and how far apart (per
@@ -53,8 +53,12 @@ function RollingLabel({ text }: { text: string }) {
                 transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
               }}
             >
-              <span className="block h-[1em] leading-none">{char === " " ? " " : char}</span>
-              <span className="block h-[1em] leading-none">{char === " " ? " " : char}</span>
+              <span className="block h-[1em] leading-none">
+                {char === " " ? " " : char}
+              </span>
+              <span className="block h-[1em] leading-none">
+                {char === " " ? " " : char}
+              </span>
             </span>
           </span>
         ))}
@@ -107,7 +111,9 @@ export default function Hero() {
   const popInClass = `transition-[opacity,transform] delay-500 duration-[2600ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
     videoEnded ? "opacity-100" : "opacity-0"
   }`;
-  const popInStyle = { transform: videoEnded ? "translateY(0)" : "translateY(28px)" };
+  const popInStyle = {
+    transform: videoEnded ? "translateY(0)" : "translateY(28px)",
+  };
 
   return (
     <section className="relative h-full w-full overflow-hidden bg-black">
@@ -167,7 +173,10 @@ export default function Hero() {
           {/* Desktop: hidden, leaving an empty spacer that balances the
               grid so the nav above stays centered (unchanged from
               before). Mobile: the hamburger toggle. */}
-          <div className={`col-start-3 justify-self-end ${popInClass}`} style={popInStyle}>
+          <div
+            className={`col-start-3 justify-self-end ${popInClass}`}
+            style={popInStyle}
+          >
             <button
               type="button"
               onClick={() => setMenuOpen((open) => !open)}
@@ -252,7 +261,6 @@ export default function Hero() {
         <div className="mx-auto max-w-[1500px] px-4 lg:px-10">
           <div className="max-w-2xl">
             <div className="flex items-center gap-3 [@media(max-height:500px)]:hidden">
-             
               <span className="text-[11px] font-bold tracking-[0.3em] text-brand-gold-light sm:text-[12px]">
                 VAIBHAV VEDA GREEN VENTURES
               </span>
@@ -265,7 +273,8 @@ export default function Hero() {
             </h1>
 
             <p className="mt-4 max-w-md text-[14.5px] leading-relaxed text-white/85 drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)] [@media(max-height:500px)]:mt-1.5 [@media(max-height:500px)]:text-[12px] sm:text-[17px]">
-              Progress becomes meaningful when people, ideas and purpose come together.
+              Progress becomes meaningful when people, ideas and purpose come
+              together.
             </p>
 
             <div className="pointer-events-auto mt-7 flex flex-wrap items-center gap-3 [@media(max-height:500px)]:mt-2.5">
@@ -278,7 +287,8 @@ export default function Hero() {
                   // HeroAboutTransition's SCROLL_SPAN_MULTIPLIER), so jump
                   // a little past that, into the hold zone.
                   e.preventDefault();
-                  const vh = window.visualViewport?.height ?? window.innerHeight;
+                  const vh =
+                    window.visualViewport?.height ?? window.innerHeight;
                   window.scrollTo({ top: vh * 1.3, behavior: "smooth" });
                 }}
                 className="rounded-full bg-brand-neon-green px-6 py-3 text-[12px] font-bold uppercase tracking-wide text-brand-green-dark shadow-[0_8px_24px_-8px_rgba(57,255,20,0.6)] transition-[background-color,transform] duration-300 hover:-translate-y-0.5 hover:bg-white [@media(max-height:500px)]:px-4 [@media(max-height:500px)]:py-1.5 [@media(max-height:500px)]:text-[10px] sm:text-[13px]"
