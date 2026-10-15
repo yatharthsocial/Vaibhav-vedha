@@ -70,7 +70,6 @@ function RollingLabel({ text }: { text: string }) {
 export default function Hero() {
   const [videoEnded, setVideoEnded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-
   // Locks the page in place while the mobile menu is open — without
   // this, the menu sits on top of the Hero/About pinned-scroll
   // transition, but the page underneath keeps scrolling right along
@@ -156,7 +155,7 @@ export default function Hero() {
           </div>
 
           <nav
-            className={`hidden justify-self-center lg:flex lg:items-center lg:gap-6 ${popInClass}`}
+            className={`hidden justify-self-center rounded-full border border-white/15 bg-black/25 px-7 py-3 backdrop-blur-md lg:flex lg:items-center lg:gap-6 ${popInClass}`}
             style={popInStyle}
           >
             {navLinks.map((link) => (
@@ -260,11 +259,9 @@ export default function Hero() {
       >
         <div className="mx-auto max-w-[1500px] px-4 lg:px-10">
           <div className="max-w-2xl">
-            <div className="flex items-center gap-3 [@media(max-height:500px)]:hidden">
-              <span className="text-[11px] font-bold tracking-[0.3em] text-brand-gold-light sm:text-[12px]">
-                VAIBHAV VEDA GREEN VENTURES
-              </span>
-            </div>
+            <span className="block text-[11px] font-bold tracking-[0.3em] text-brand-gold-light [@media(max-height:500px)]:hidden sm:text-[12px]">
+              VAIBHAV VEDA GREEN VENTURES
+            </span>
 
             <h1 className="mt-4 font-sans text-[36px] font-extrabold leading-[1.05] tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.55)] [@media(max-height:500px)]:mt-0 [@media(max-height:500px)]:text-[24px] sm:text-[52px] lg:text-[64px]">
               <span className="text-brand-neon-green">Sustainable</span> Today.

@@ -5,7 +5,14 @@
 
 export type VerticalSlug = "green" | "build" | "learn" | "advise" | "digital";
 
-export type FocusArea = { title: string; kicker: string; text: string };
+// image is optional — until one is set, the page rotates through the
+// vertical images as placeholders.
+export type FocusArea = {
+  title: string;
+  kicker: string;
+  text: string;
+  image?: string;
+};
 
 // The block types a page can stack between its focus areas and its
 // closing section — each has its own layout in VerticalPage.

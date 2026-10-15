@@ -301,12 +301,52 @@ export default function BusinessSection() {
     readTarget();
     current = target;
     render(current);
+
+    // Arriving via a vertical page's Back button (/#vertical-<slug>):
+    // jump straight to the point where that card has just landed on top
+    // of the stack, and turn it over — the state the visitor left it in.
+    // Deferred a beat so it runs after the router's own scroll handling.
+    let deepLinkTimer: ReturnType<typeof setTimeout> | null = null;
+    const deepLink = window.location.hash.match(/^#vertical-([a-z]+)$/);
+    const deepIndex = deepLink
+      ? verticals.findIndex((v) => v.slug === deepLink[1])
+      : -1;
+    if (deepIndex !== -1) {
+      const jump = () => {
+        const wrapper = wrapperRef.current;
+        if (!wrapper) return 0;
+        const span = viewportHeight * SCROLL_SPAN_MULTIPLIER;
+        const wrapperTop = wrapper.getBoundingClientRect().top + window.scrollY;
+        const landed = ((deepIndex + 1) / COUNT) * STACK_DONE_AT;
+        const top = wrapperTop + landed * span;
+        window.scrollTo({ top, behavior: "instant" });
+        readTarget();
+        current = target;
+        render(current);
+        setFlipped(deepIndex);
+        return top;
+      };
+      deepLinkTimer = setTimeout(() => {
+        const top = jump();
+        history.replaceState(
+          null,
+          "",
+          window.location.pathname + window.location.search,
+        );
+        // If anything else moved the page in the meantime (the router's
+        // own scroll restoration, late layout), land on the card again.
+        deepLinkTimer = setTimeout(() => {
+          if (Math.abs(window.scrollY - top) > 40) jump();
+        }, 400);
+      }, 60);
+    }
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize);
     window.visualViewport?.addEventListener("resize", onResize);
     return () => {
       if (frame !== null) cancelAnimationFrame(frame);
       if (resizeSettleTimer) clearTimeout(resizeSettleTimer);
+      if (deepLinkTimer) clearTimeout(deepLinkTimer);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
       window.visualViewport?.removeEventListener("resize", onResize);

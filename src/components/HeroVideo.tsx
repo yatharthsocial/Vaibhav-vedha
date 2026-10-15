@@ -14,19 +14,33 @@ const FREEZE_TRANSITION_MS = 700;
 // phone screen. Kept in sync with the media query on the <source> tag.
 const MOBILE_BREAKPOINT = 768;
 
-const LAST_FRAME = {
-  mobile: "/video/hero-mobile-last-frame.jpg",
-  desktop: "/video/hero-last-frame.jpg",
+// The hero clip and its stills. Desktop plays public/video/hero-v3.mp4
+// (a web encode of heroland.mp4); phones play hero-v3-mobile.mp4 (a web
+// encode of "Portrait vaibhav veda.mp4").
+const VIDEO = {
+  mobile: "/video/hero-v3-mobile.mp4",
+  desktop: "/video/hero-v3.mp4",
 };
 
-// A one-time, static speed bump — not a live/eased rate change, and
+const FIRST_FRAME = {
+  mobile: "/video/hero-v3-mobile-first-frame.jpg",
+  desktop: "/video/hero-v3-first-frame.jpg",
+};
+
+const LAST_FRAME = {
+  mobile: "/video/hero-v3-mobile-last-frame.jpg",
+  desktop: "/video/hero-v3-last-frame.jpg",
+};
+
+// A one-time, static playback speed (normal speed for the current
+// clip, which is already short) — not a live/eased rate change, and
 // not re-applied on every frame. Some browsers reset playbackRate
 // when the source resolves, so it's set both immediately and again on
 // loadedmetadata below, but always to this same fixed value. This is
 // deliberately distinct from the dynamic playbackRate/seek/restart
 // tricks noted below, which are what actually caused the earlier
 // glitches.
-const PLAYBACK_RATE = 1.2;
+const PLAYBACK_RATE = 1;
 
 export default function HeroVideo({
   className = "",
@@ -81,7 +95,7 @@ export default function HeroVideo({
     // once the source actually resolves.
     const updateLastFrame = () => {
       setLastFrame(
-        video.currentSrc.includes("hero-mobile") ? LAST_FRAME.mobile : LAST_FRAME.desktop,
+        video.currentSrc.includes(VIDEO.mobile) ? LAST_FRAME.mobile : LAST_FRAME.desktop,
       );
       video.playbackRate = PLAYBACK_RATE;
     };
@@ -117,10 +131,10 @@ export default function HeroVideo({
         muted
         playsInline
         preload="auto"
-        aria-label="Sustainable office building surrounded by greenery, wind turbines and solar panels"
+        aria-label="Aerial view of a green campus with solar-panelled rooftops"
       >
-        <source media={`(max-width: ${MOBILE_BREAKPOINT - 1}px)`} src="/video/hero-mobile.mp4" />
-        <source src="/video/hero.mp4" />
+        <source media={`(max-width: ${MOBILE_BREAKPOINT - 1}px)`} src={VIDEO.mobile} />
+        <source src={VIDEO.desktop} />
       </video>
       {/* Sets the correctly-oriented poster the instant the browser
           parses this point in the document — before hydration, before
@@ -134,7 +148,7 @@ export default function HeroVideo({
         dangerouslySetInnerHTML={{
           __html: `(function(){var v=document.currentScript.previousElementSibling;if(v)v.poster=window.matchMedia("(max-width: ${
             MOBILE_BREAKPOINT - 1
-          }px)").matches?"/video/hero-mobile-first-frame.jpg":"/video/hero-first-frame.jpg";})();`,
+          }px)").matches?"${FIRST_FRAME.mobile}":"${FIRST_FRAME.desktop}";})();`,
         }}
       />
       {/* Crossfades on top once the clip ends, then stays put forever
@@ -142,7 +156,7 @@ export default function HeroVideo({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={lastFrame}
-        alt="Sustainable office building surrounded by greenery, wind turbines and solar panels"
+        alt="Aerial view of a green campus with solar-panelled rooftops"
         className={`absolute inset-0 h-full w-full object-cover transition-opacity ease-out ${
           ended ? "opacity-100" : "opacity-0"
         }`}

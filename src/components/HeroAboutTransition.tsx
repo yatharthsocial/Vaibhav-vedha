@@ -48,7 +48,8 @@ const HOLD_KEYS = new Set(["ArrowDown", "PageDown", "End", " ", "Spacebar"]);
 // actually experiencing, even though small mismatches against the
 // constant `lvh` box are harmless — this only shifts *when* the
 // content fades in, never the box's size or position.
-const getViewportHeight = () => window.visualViewport?.height ?? window.innerHeight;
+const getViewportHeight = () =>
+  window.visualViewport?.height ?? window.innerHeight;
 
 export default function HeroAboutTransition() {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -70,8 +71,11 @@ export default function HeroAboutTransition() {
     // mid-scroll — this removes that mechanism entirely rather than
     // trying to time around it).
     let viewportHeight = getViewportHeight();
-    const aboutSection = aboutLayerRef.current?.querySelector<HTMLElement>("#about") ?? null;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const aboutSection =
+      aboutLayerRef.current?.querySelector<HTMLElement>("#about") ?? null;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
 
     // targetProgress is where the scroll position says the transition
     // should be; currentProgress eases toward it every frame, so
@@ -82,7 +86,14 @@ export default function HeroAboutTransition() {
     let currentProgress = 0;
     let easeFrame: number | null = null;
 
-    let heldThisPass = false;
+    // A Back-button deep link (/#vertical-<slug>) jumps the page well
+    // past About — don't arm the hold, or it would pull the visitor back.
+    // The page sits at the top for a moment before that jump, which
+    // would normally re-arm the hold, so re-arming is suppressed for a
+    // short window too.
+    const deepLinked = /^#vertical-/.test(window.location.hash);
+    const noRearmUntil = deepLinked ? performance.now() + 2000 : 0;
+    let heldThisPass = deepLinked;
     let holdUntil = 0;
     const isHolding = () => performance.now() < holdUntil;
 
@@ -104,7 +115,8 @@ export default function HeroAboutTransition() {
 
       if (aboutSection) {
         if (progress >= ABOUT_REVEAL_AT) aboutSection.dataset.revealed = "";
-        else if (progress <= ABOUT_RESET_AT) delete aboutSection.dataset.revealed;
+        else if (progress <= ABOUT_RESET_AT)
+          delete aboutSection.dataset.revealed;
       }
     };
 
@@ -145,11 +157,17 @@ export default function HeroAboutTransition() {
           heldThisPass = true;
           holdUntil = performance.now() + ABOUT_HOLD_MS;
           aboutSection.dataset.revealed = "";
-        } else if (rawProgress <= ABOUT_RESET_AT) {
+        } else if (
+          rawProgress <= ABOUT_RESET_AT &&
+          performance.now() > noRearmUntil
+        ) {
           heldThisPass = false;
         }
         if (isHolding() && rawProgress > 1) {
-          window.scrollTo({ top: window.scrollY - (scrolled - transitionSpan), behavior: "instant" });
+          window.scrollTo({
+            top: window.scrollY - (scrolled - transitionSpan),
+            behavior: "instant",
+          });
           targetProgress = 1;
         }
       }
@@ -244,7 +262,10 @@ export default function HeroAboutTransition() {
     // sitting behind/under it rather than an empty gap.
     // 275lvh = 100 pinned + 100 scroll span + 75 hold.
     <div ref={wrapperRef} className="relative h-[275lvh]">
-      <div ref={stickyRef} className="sticky top-0 h-[100lvh] w-full overflow-hidden">
+      <div
+        ref={stickyRef}
+        className="sticky top-0 h-[100lvh] w-full overflow-hidden"
+      >
         <div
           ref={heroLayerRef}
           className="absolute inset-0 h-full w-full"

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -94,20 +94,31 @@ function VerticalHeader({ current }: { current: Vertical["slug"] }) {
   return (
     <header className="absolute inset-x-0 top-0 z-30">
       <div className="mx-auto flex max-w-[1500px] items-center justify-between px-5 py-4 lg:px-10 lg:py-5">
-        <Link
-          href="/"
-          aria-label="Vaibhav Veda Green Ventures home"
-          className="flex-none"
-        >
-          <Image
-            src="/logo.png"
-            alt="Vaibhav Veda Green Ventures"
-            width={480}
-            height={480}
-            priority
-            className="h-12 w-12 drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] lg:h-16 lg:w-16"
-          />
-        </Link>
+        <div className="flex flex-none items-center gap-3 sm:gap-4">
+          <Link
+            href="/"
+            aria-label="Vaibhav Veda Green Ventures home"
+            className="flex-none"
+          >
+            <Image
+              src="/logo.png"
+              alt="Vaibhav Veda Green Ventures"
+              width={480}
+              height={480}
+              priority
+              className="h-12 w-12 drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] lg:h-16 lg:w-16"
+            />
+          </Link>
+          {/* Back to the homepage's verticals stack, with this page's
+              card on top and turned over — where the visitor came from. */}
+          <Link
+            href={`/#vertical-${current}`}
+            className="group flex items-center gap-2 rounded-full border border-white/40 bg-black/20 px-4 py-2.5 text-[12px] font-bold uppercase tracking-wide text-white backdrop-blur-md transition-colors hover:border-brand-neon-green hover:text-brand-neon-green"
+          >
+            <ArrowLeft className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-0.5" />
+            Back
+          </Link>
+        </div>
 
         <nav className="hidden items-center gap-1 rounded-full border border-white/15 bg-black/20 p-1 backdrop-blur-md lg:flex">
           {verticalPages.map((v) => {
@@ -328,65 +339,200 @@ function Intro({ v }: { v: Vertical }) {
   );
 }
 
+// Placeholder imagery for the focus areas until each has its own
+// photo (FocusArea.image) — the page's own image first, then the
+// other verticals', so every area still gets a distinct picture.
+const focusImageFallbacks = (v: Vertical) => [
+  v.image,
+  ...verticalPages.filter((o) => o.slug !== v.slug).map((o) => o.image),
+];
+
+// Height of the pinned focus photo — it's centred on the viewport, so
+// this also sets where its top pins.
+const FOCUS_PHOTO_H = "min(62vh, 540px)";
+// How far down the photo (0–1) an item's top must rise to become active.
+const FOCUS_LINE = 0.32;
+
+// One focus area is active at a time: it's highlighted in the list,
+// and the pinned photo and caption on the left switch to it. The switch itself is all CSS
+// transitions, so it's smooth however the scroll arrives.
 function Focus({ v }: { v: Vertical }) {
+  const [active, setActive] = useState(0);
+  const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
+  const fallbacks = focusImageFallbacks(v);
+  const images = v.focus.map(
+    (f, i) => f.image ?? fallbacks[i % fallbacks.length],
+  );
+
+  // The active item is the last one whose top has risen past a line
+  // a third of the way down the pinned photo — so at the start the
+  // first item (level with the photo's top) is active, and each next
+  // one takes over as it moves up into the photo's upper part. Without
+  // the photo (phones), the line sits 40% down the viewport instead.
+  const photoRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let ticking = false;
+    const update = () => {
+      ticking = false;
+      const photo = photoRef.current;
+      const rect = photo?.getBoundingClientRect();
+      const line =
+        rect && rect.height > 0
+          ? rect.top + rect.height * FOCUS_LINE
+          : window.innerHeight * 0.4;
+      let next = 0;
+      itemRefs.current.forEach((el, i) => {
+        if (el && el.getBoundingClientRect().top <= line) next = i;
+      });
+      setActive((prev) => (prev === next ? prev : next));
+    };
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+
+  const stateFor = (i: number) =>
+    i === active ? "active" : i < active ? "before" : "after";
+
   return (
     <section
       id="focus"
       className="w-full scroll-mt-4 bg-white px-5 py-24 lg:px-10 lg:py-32"
     >
-      <div className="mx-auto grid max-w-[1300px] gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-20">
-        {/* Sticky intro column with the vertical's photo. */}
-        <div>
-          <div className="lg:sticky lg:top-24">
-            <Reveal>
-              <Eyebrow>What we focus on</Eyebrow>
-              <h2 className="mt-5 font-sans text-[32px] font-extrabold leading-[1.06] tracking-[-0.02em] text-brand-green-dark sm:text-[44px]">
-                Five areas.{" "}
-                <span className="text-brand-green-light">One direction.</span>
-              </h2>
-            </Reveal>
-            <Reveal delay={150} className="mt-8 hidden lg:block">
-              <div className="relative aspect-[4/3] overflow-hidden rounded-[24px]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={v.image}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-brand-green-dark/70 to-transparent" />
-                <span className="absolute bottom-5 left-6 text-[13px] font-bold uppercase tracking-[0.2em] text-white">
-                  {v.tagline}
-                </span>
+      <div className="mx-auto max-w-[1300px]">
+        <Reveal>
+          <Eyebrow>What we focus on</Eyebrow>
+          <h2 className="mt-5 font-sans text-[32px] font-extrabold leading-[1.06] tracking-[-0.02em] text-brand-green-dark sm:text-[44px]">
+            Five areas.{" "}
+            <span className="text-brand-green-light">One direction.</span>
+          </h2>
+        </Reveal>
+
+        {/* Photo and list start level with each other. Once scrolling,
+            the photo pins to the middle of the viewport (FOCUS_PHOTO_H
+            tall, so its top sits at 50vh minus half that), and the item
+            crossing that same middle line is the active one — the
+            highlighted text always sits right beside the picture. */}
+        <div className="mt-12 grid gap-12 lg:mt-16 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:items-start lg:gap-20">
+          <div
+            className="hidden lg:sticky lg:block"
+            style={{ top: `calc(50vh - ${FOCUS_PHOTO_H} / 2)` }}
+          >
+            <Reveal delay={150}>
+              <div
+                ref={photoRef}
+                className="relative overflow-hidden rounded-[24px] bg-brand-green-dark"
+                style={{ height: FOCUS_PHOTO_H }}
+              >
+                {images.map((src, i) => (
+                  <div
+                    key={i}
+                    data-state={stateFor(i)}
+                    className="vertical-bg absolute inset-0"
+                    aria-hidden={i !== active}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={src}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ))}
+                <div className="absolute inset-0 bg-gradient-to-t from-brand-green-dark/85 via-brand-green-dark/20 to-transparent" />
+
+                {/* Caption — rolls to the active area's name. */}
+                <div className="absolute inset-x-6 bottom-5 flex items-end justify-between gap-4 text-white">
+                  <div className="relative h-[1.4em] min-w-0 flex-1 overflow-hidden text-[14px] font-bold uppercase tracking-[0.18em]">
+                    {v.focus.map((f, i) => (
+                      <span
+                        key={f.title}
+                        data-state={stateFor(i)}
+                        className="vertical-swap absolute inset-x-0 top-0 truncate leading-[1.4]"
+                      >
+                        {f.title}
+                      </span>
+                    ))}
+                  </div>
+                  <span className="flex-none text-[12px] font-bold tabular-nums text-white/70">
+                    <span className="text-brand-neon-green">0{active + 1}</span>{" "}
+                    / 0{v.focus.length}
+                  </span>
+                </div>
               </div>
             </Reveal>
           </div>
-        </div>
 
-        <ol className="border-b border-brand-green-dark/10">
-          {v.focus.map((f, i) => (
-            <li key={f.title} className="border-t border-brand-green-dark/10">
-              <Reveal
-                delay={i * 60}
-                className="group grid grid-cols-[44px_minmax(0,1fr)] gap-x-4 py-8 sm:grid-cols-[64px_minmax(0,1fr)] sm:py-10"
-              >
-                <span className="pt-1.5 text-[13px] font-bold tabular-nums text-brand-gold">
-                  0{i + 1}
-                </span>
-                <div>
-                  <h3 className="font-sans text-[24px] font-extrabold leading-tight tracking-tight text-brand-green-dark transition-colors duration-300 group-hover:text-brand-green-light sm:text-[30px]">
-                    {f.title}
-                  </h3>
-                  <p className="mt-2 text-[15px] font-semibold text-brand-green-light sm:text-[16px]">
-                    {f.kicker}
-                  </p>
-                  <p className="mt-4 max-w-2xl text-[14.5px] leading-relaxed text-black/60 sm:text-[15.5px]">
-                    {f.text}
-                  </p>
-                </div>
-              </Reveal>
-            </li>
-          ))}
-        </ol>
+          {/* Extra room after the last item (desktop) so it can reach
+              the middle line beside the photo too. */}
+          <ol className="border-b border-brand-green-dark/10 lg:mb-[24vh]">
+            {v.focus.map((f, i) => {
+              const isActive = i === active;
+              return (
+                <li
+                  key={f.title}
+                  ref={(el) => {
+                    itemRefs.current[i] = el;
+                  }}
+                  data-index={i}
+                  className="border-t border-brand-green-dark/10 first:border-t-0 lg:first:[&>div]:pt-0"
+                >
+                  <Reveal
+                    delay={i * 60}
+                    className="relative grid grid-cols-[44px_minmax(0,1fr)] gap-x-4 py-8 sm:grid-cols-[64px_minmax(0,1fr)] sm:py-10"
+                  >
+                    {/* Accent bar that grows down the active item. */}
+                    <span
+                      className={`absolute -left-px top-0 h-full w-[3px] origin-top bg-brand-green-light transition-transform duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                        isActive ? "scale-y-100" : "scale-y-0"
+                      }`}
+                    />
+                    <span
+                      className={`pl-3 pt-1.5 text-[13px] font-bold tabular-nums transition-colors duration-700 ${
+                        isActive
+                          ? "text-brand-gold"
+                          : "text-brand-green-dark/25"
+                      }`}
+                    >
+                      0{i + 1}
+                    </span>
+                    <div
+                      className={`transition-opacity duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                        isActive ? "opacity-100" : "opacity-40"
+                      }`}
+                    >
+                      <h3
+                        className={`font-sans text-[24px] font-extrabold leading-tight tracking-tight transition-colors duration-700 sm:text-[30px] ${
+                          isActive
+                            ? "text-brand-green-light"
+                            : "text-brand-green-dark"
+                        }`}
+                      >
+                        {f.title}
+                      </h3>
+                      <p className="mt-2 text-[15px] font-semibold text-brand-green-light sm:text-[16px]">
+                        {f.kicker}
+                      </p>
+                      <p className="mt-4 max-w-2xl text-[14.5px] leading-relaxed text-black/60 sm:text-[15.5px]">
+                        {f.text}
+                      </p>
+                    </div>
+                  </Reveal>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
       </div>
     </section>
   );
