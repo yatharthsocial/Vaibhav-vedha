@@ -15,20 +15,21 @@ const FREEZE_TRANSITION_MS = 700;
 const MOBILE_BREAKPOINT = 768;
 
 // The hero clip and its stills. Desktop plays public/video/hero-v3.mp4
-// (a web encode of heroland.mp4); phones play hero-v3-mobile.mp4 (a web
-// encode of "Portrait vaibhav veda.mp4").
+// (a web encode of heroland.mp4); phones play heroland-mobile.mp4, the
+// same clip centre-cropped to portrait 9:16 so phones download only the
+// part of the frame they'd show.
 const VIDEO = {
-  mobile: "/video/hero-v3-mobile.mp4",
+  mobile: "/video/heroland-mobile.mp4",
   desktop: "/video/hero-v3.mp4",
 };
 
 const FIRST_FRAME = {
-  mobile: "/video/hero-v3-mobile-first-frame.jpg",
+  mobile: "/video/heroland-mobile-first-frame.jpg",
   desktop: "/video/hero-v3-first-frame.jpg",
 };
 
 const LAST_FRAME = {
-  mobile: "/video/hero-v3-mobile-last-frame.jpg",
+  mobile: "/video/heroland-mobile-last-frame.jpg",
   desktop: "/video/hero-v3-last-frame.jpg",
 };
 
@@ -41,6 +42,10 @@ const LAST_FRAME = {
 // tricks noted below, which are what actually caused the earlier
 // glitches.
 const PLAYBACK_RATE = 1;
+
+// If the clip still hasn't started playing after this long, give up on
+// it and reveal the headline (see the fallback in the effect below).
+const PLAY_START_TIMEOUT_MS = 4000;
 
 export default function HeroVideo({
   className = "",
@@ -80,11 +85,24 @@ export default function HeroVideo({
     // comes entirely from the crossfade below: the video plays at a
     // constant rate right up to its last frame, then fades into the
     // identical still image over FREEZE_TRANSITION_MS.
+    let done = false;
     const handleEnded = () => {
+      if (done) return;
+      done = true;
       setEnded(true);
       onEndedRef.current?.();
     };
     video.addEventListener("ended", handleEnded);
+
+    // If the video can't play at all — autoplay refused (iPhone Low
+    // Power Mode, data saver), a decode/network error, or it simply
+    // never gets going — treat it as finished, so the hero headline
+    // still appears over the still frame instead of never showing.
+    video.addEventListener("error", handleEnded);
+    video.play()?.catch(handleEnded);
+    const stuckTimer = setTimeout(() => {
+      if (video.currentTime === 0) handleEnded();
+    }, PLAY_START_TIMEOUT_MS);
     video.playbackRate = PLAYBACK_RATE;
 
     // The <video>'s two <source> tags below are resolved natively by
@@ -104,6 +122,8 @@ export default function HeroVideo({
 
     return () => {
       video.removeEventListener("ended", handleEnded);
+      video.removeEventListener("error", handleEnded);
+      clearTimeout(stuckTimer);
       video.removeEventListener("loadedmetadata", updateLastFrame);
     };
   }, []);
