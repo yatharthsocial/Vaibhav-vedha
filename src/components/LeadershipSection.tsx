@@ -112,15 +112,38 @@ const CIRCLE_RX = (CIRCLE_D / 2) * 100;
 const CIRCLE_RY = (CIRCLE_D / 2 / BOX_H) * 100;
 const HEAD_BAND = 0.4;
 
+// The figure rises from below the circle's bottom edge up into place.
+// Only the image moves — the clip shapes stay put — so the figure is
+// hidden until it enters the circle, then emerges from inside it.
+const RISE_MS = 1500;
+
 function CutoutPortrait({
   cutout,
   alt,
-  visible,
 }: {
   cutout: { src: string; width: number; height: number };
   alt: string;
-  visible: boolean;
 }) {
+  // Each portrait animates when it scrolls into view itself, rather
+  // than both firing as soon as the section's top edge appears.
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.35 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const layers = [
     `ellipse(${CIRCLE_RX}% ${CIRCLE_RY}% at 50% ${CIRCLE_CY}%)`,
     // Above-the-rim layer: reaches down to the circle's centre line so
@@ -130,7 +153,11 @@ function CutoutPortrait({
     `inset(0 ${(100 - HEAD_BAND * 100) / 2}% ${100 - CIRCLE_CY}% ${(100 - HEAD_BAND * 100) / 2}%)`,
   ];
   return (
-    <div className="relative w-full" style={{ aspectRatio: `1 / ${BOX_H}` }}>
+    <div
+      ref={ref}
+      className="relative w-full"
+      style={{ aspectRatio: `1 / ${BOX_H}` }}
+    >
       {/* The circle — brand-green with a soft light source top-left,
           plus a thin outer ring. */}
       <div
@@ -152,17 +179,13 @@ function CutoutPortrait({
         />
       </div>
 
-      {/* The portrait, twice — see the geometry note above. */}
+      {/* The portrait, twice — see the geometry note above. The clip
+          wrappers stay still; only the image inside them rises. */}
       {layers.map((clip, i) => (
         <div
           key={clip}
-          className="absolute inset-0 transition-[transform,opacity] duration-[1100ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
-          style={{
-            clipPath: clip,
-            opacity: visible ? 1 : 0,
-            transform: visible ? "translateY(0)" : "translateY(24px)",
-            transitionDelay: visible ? "150ms" : "0ms",
-          }}
+          className="absolute inset-0"
+          style={{ clipPath: clip }}
           aria-hidden={i > 0}
         >
           <Image
@@ -170,11 +193,17 @@ function CutoutPortrait({
             alt={i === 0 ? alt : ""}
             width={cutout.width}
             height={cutout.height}
-            sizes="(min-width: 640px) 36vw, 100vw"
-            className="absolute bottom-0 h-auto max-w-none"
+            sizes="(min-width: 640px) 40vw, 100vw"
+            className="absolute bottom-0 h-auto max-w-none will-change-transform"
             style={{
               width: `${FIGURE_W * 100}%`,
               left: `${((1 - FIGURE_W) / 2) * 100}%`,
+              transform: visible
+                ? "translate3d(0, 0, 0)"
+                : "translate3d(0, 100%, 0)",
+              transition: `transform ${RISE_MS}ms cubic-bezier(0.22, 1, 0.36, 1) ${
+                visible ? "250ms" : "0ms"
+              }`,
             }}
           />
         </div>
@@ -255,11 +284,7 @@ export default function LeadershipSection() {
                 className={`relative w-full flex-none ${l.cutout ? "sm:w-[40%]" : "sm:w-[36%]"}`}
               >
                 {l.cutout ? (
-                  <CutoutPortrait
-                    cutout={l.cutout}
-                    alt={l.name}
-                    visible={visible}
-                  />
+                  <CutoutPortrait cutout={l.cutout} alt={l.name} />
                 ) : (
                   <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-brand-green-dark [@media(max-height:500px)]:!aspect-[3/4]">
                     <Image
@@ -343,7 +368,7 @@ export default function LeadershipSection() {
                       the same bordered index/label/text pattern the
                       About section's Mission/Vision pair already
                       uses. */}
-                  {/* line-clamp (title to 2 lines, text to 3) plus a
+                  {/* line-clamp (title to 2 lines, text to 4) plus a
                       min-height on each matching that line count
                       makes every column the same height no matter how
                       the actual copy's word/character count varies —
@@ -363,7 +388,7 @@ export default function LeadershipSection() {
                         <span className="line-clamp-2 block min-h-[2.6em] text-[10px] font-bold uppercase leading-[1.3] tracking-[0.15em] text-brand-green-dark/80">
                           {h.title}
                         </span>
-                        <p className="line-clamp-3 mt-2 min-h-[62px] text-[12.5px] leading-relaxed text-black/50">
+                        <p className="line-clamp-4 mt-2 min-h-[62px] text-[12.5px] leading-relaxed text-black/50">
                           {h.text}
                         </p>
                       </div>

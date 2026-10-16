@@ -162,14 +162,6 @@ export default function Footer() {
                   ceo.vaibhavvedagreenventures@gmail.com
                 </a>
               </li>
-              <li>
-                <a
-                  href="tel:+919945235259"
-                  className="transition-colors hover:text-white"
-                >
-                  +91-9945235259
-                </a>
-              </li>
             </ul>
           </div>
         </div>

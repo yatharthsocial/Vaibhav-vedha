@@ -96,6 +96,11 @@ export default function HeroAboutTransition() {
     let heldThisPass = deepLinked;
     let holdUntil = 0;
     const isHolding = () => performance.now() < holdUntil;
+    // The hold is for someone scrolling *through* About. A jump of more
+    // than a screen in one go is navigation instead — a nav link, the
+    // Back-button deep link, the End key — and must land where it was
+    // aimed, not get pulled back to About.
+    let lastScrollY = window.scrollY;
 
     const render = (progress: number) => {
       const heroLayer = heroLayerRef.current;
@@ -152,8 +157,17 @@ export default function HeroAboutTransition() {
       // threshold. If a single big jump (fling, Page Down) already
       // carried them past the fully-in point, pull back to it — still
       // inside the pinned range, so About is what they see.
+      const jumped = Math.abs(window.scrollY - lastScrollY) > viewportHeight;
+      lastScrollY = window.scrollY;
+
       if (!reduceMotion && aboutSection) {
-        if (!heldThisPass && rawProgress >= ABOUT_REVEAL_AT) {
+        if (jumped && rawProgress > 1) {
+          // Navigated past About: no hold this pass, and cancel any
+          // hold already running.
+          heldThisPass = true;
+          holdUntil = 0;
+          aboutSection.dataset.revealed = "";
+        } else if (!heldThisPass && rawProgress >= ABOUT_REVEAL_AT) {
           heldThisPass = true;
           holdUntil = performance.now() + ABOUT_HOLD_MS;
           aboutSection.dataset.revealed = "";

@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, Mail, Phone } from "lucide-react";
+import { Building2, Mail } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import {
@@ -18,7 +18,6 @@ const socials = [
 ];
 
 const contactDetails = [
-  { label: "Mobile", value: "+91-9945235259", href: "tel:+919945235259", icon: Phone },
   {
     label: "Email",
     value: "ceo.vaibhavvedagreenventures@gmail.com",
