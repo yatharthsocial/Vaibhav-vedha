@@ -24,6 +24,12 @@ const contactDetails = [
     href: "mailto:ceo.vaibhavvedagreenventures@gmail.com",
     icon: Mail,
   },
+  {
+    label: "Enquiries",
+    value: "enquiry.vaibhavvedagreenventures@gmail.com",
+    href: "mailto:enquiry.vaibhavvedagreenventures@gmail.com",
+    icon: Mail,
+  },
   { label: "Corporate", value: "Vaibhav Veda Green Ventures Private Limited", icon: Building2 },
 ];
 

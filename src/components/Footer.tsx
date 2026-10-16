@@ -162,6 +162,14 @@ export default function Footer() {
                   ceo.vaibhavvedagreenventures@gmail.com
                 </a>
               </li>
+              <li>
+                <a
+                  href="mailto:enquiry.vaibhavvedagreenventures@gmail.com"
+                  className="break-all transition-colors hover:text-white"
+                >
+                  enquiry.vaibhavvedagreenventures@gmail.com
+                </a>
+              </li>
             </ul>
           </div>
         </div>
